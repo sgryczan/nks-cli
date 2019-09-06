@@ -16,8 +16,17 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
+
+type cluster struct {
+}
 
 // clusterCmd represents the cluster command
 var clusterCmd = &cobra.Command{
@@ -32,6 +41,26 @@ to quickly create a Cobra application.`,
 	//Run: func(cmd *cobra.Command, args []string) {
 	//	fmt.Println("cluster called")
 	//},
+}
+
+func getClusters() *[]cluster {
+	client := &http.Client{}
+	orgID := viper.GetString("org_id")
+	req, _ := http.NewRequest("GET", fmt.Sprintf("https://api.nks.netapp.io/orgs/%s/clusters", orgID), nil)
+	req.Header.Add("Authorization", "Bearer "+viper.GetString("api_token"))
+
+	resp, err := client.Do(req)
+	check(err)
+
+	body, err := ioutil.ReadAll(resp.Body)
+	check(err)
+
+	data := []cluster{}
+
+	err = json.Unmarshal(body, &data)
+	check(err)
+
+	return &data
 }
 
 func init() {
