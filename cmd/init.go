@@ -16,33 +16,31 @@ limitations under the License.
 package cmd
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"strings"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
+var configFields = []string{
+	"api_token",
+	"api_url",
+	"org_id",
+	"cluster_id",
+}
+
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "create a new configuration",
 	Run: func(cmd *cobra.Command, args []string) {
 		newConfig()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(initCmd)
+	configCmd.AddCommand(initCmd)
 
 	// Here you will define your flags and configuration settings.
 
@@ -55,36 +53,33 @@ func init() {
 	// initCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func createConfigFile(filename string, apitoken string) error {
-	s := fmt.Sprintf("api_token: %s\n", apitoken)
-	bs := []byte(s)
+func createConfigFile(filename string, token string) error {
+	for _, s := range configFields {
+		var v string
+		switch s {
+		case "api_token":
+			v = token
+		case "api_url":
+			v = "https://api.nks.netapp.io"
+		default:
 
-	f, err := os.Create(filename)
-
-	if err != nil {
-		panic(err)
+		}
+		viper.Set(s, v)
 	}
-	defer f.Close()
-
-	_, err = f.Write(bs)
-	if err != nil {
-		panic(err)
-	}
-
-	f.Sync()
+	fmt.Println("Setting default org..")
+	setConfigDefaultOrg(getDefaultOrg())
+	viper.WriteConfigAs(filename)
 
 	return nil
 }
 
-func readApiToken() string {
-	fmt.Printf("Enter your NKS API Token:")
-	reader := bufio.NewReader(os.Stdin)
-	token, _ := reader.ReadString('\n')
+func setConfigDefaultOrg(o organization) {
+	viper.Set("org_id", o.ID)
+	viper.WriteConfig()
+}
 
-	// convert CRLF to LF
-	token = strings.Replace(token, "\n", "", -1)
+func bootstrapConfigFile() {
 
-	return token
 }
 
 func newConfig() error {
@@ -97,7 +92,7 @@ func newConfig() error {
 
 	// Search config in home directory with name ".nks" (without extension).
 	viper.AddConfigPath(home)
-	viper.SetConfigName(".nks.yaml")
+	viper.SetConfigName(".nks")
 
 	return nil
 }

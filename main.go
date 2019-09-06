@@ -15,7 +15,7 @@ limitations under the License.
 */
 package main
 
-import "gitlab.com/sgryczan/nkscli/cmd"
+import "gitlab.com/sgryczan/nks-cli/cmd"
 
 func main() {
 	cmd.Execute()

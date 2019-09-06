@@ -26,7 +26,7 @@ import (
 )
 
 var cfgFile string
-var api_token string
+var apiToken string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -60,9 +60,6 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.nks/config)")
-	rootCmd.PersistentFlags().StringVar(&api_token, "api_token", "", "loaded from config")
-
-	viper.BindPFlag("api_token", rootCmd.PersistentFlags().Lookup("api_token"))
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -91,9 +88,9 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		//fmt.Println("Using config file:", viper.ConfigFileUsed())
+		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	} else {
 		fmt.Println("Could not find config file!")
-		newConfig()
+		fmt.Println("Please run 'nks config init` to create one.")
 	}
 }

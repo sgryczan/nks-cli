@@ -18,26 +18,69 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/spf13/viper"
+
 	"github.com/spf13/cobra"
 )
 
 // configCmd represents the config command
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "nks cli configuration",
+	Long:  `Various commands for configuring nks cli`,
+	//Run: func(cmd *cobra.Command, args []string) {
+	//	fmt.Println("config called")
+	//},
+}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+var listConfigCmd = &cobra.Command{
+	Use:   "list",
+	Short: "list current configuration",
+	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("config called")
+		for k, v := range viper.AllSettings() {
+			fmt.Printf("%s: %v\n", k, v)
+		}
+	},
+}
+
+var configSetCmd = &cobra.Command{
+	Use:   "set",
+	Short: "set configuration setting",
+	Long:  "",
+	/* Run: func(cmd *cobra.Command, args []string) {
+		for k, v := range viper.AllSettings() {
+			fmt.Printf("%s: %v\n", k, v)
+		}
+	}, */
+}
+
+var configSetTokenCmd = &cobra.Command{
+	Use:   "token",
+	Short: "set api token",
+	Long:  "",
+	Run: func(cmd *cobra.Command, args []string) {
+		viper.Set("api_token", args[0])
+		viper.WriteConfig()
+	},
+}
+
+var configSetURLCmd = &cobra.Command{
+	Use:   "url",
+	Short: "set api url",
+	Long:  "",
+	Run: func(cmd *cobra.Command, args []string) {
+		viper.Set("api_url", args[0])
+		viper.WriteConfig()
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(configCmd)
+	configCmd.AddCommand(listConfigCmd)
+	configCmd.AddCommand(configSetCmd)
+	configSetCmd.AddCommand(configSetTokenCmd)
+	configSetCmd.AddCommand(configSetURLCmd)
 
 	// Here you will define your flags and configuration settings.
 
