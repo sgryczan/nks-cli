@@ -1,31 +1,37 @@
-/*
-Copyright © 2019 NAME HERE <EMAIL ADDRESS>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package cmd
 
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"os"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-type cluster struct {
+type ClusterConfig struct {
+	AdminConf      string `json:"b64_admin_conf`
+	InstallMethod  string `json:"install_method`
+	CACrt          string `json:"b64_ca_crt"`
+	CAKey          string `json:"b64_ca_key"`
+	ProxyCert      string `json:"b64_front_proxy_ca_cert"`
+	ProxyKey       string `json:"b64_front_proxy_ca_key"`
+	SAPub          string `json:"b64_sa_pub"`
+	SAKey          string `json:"b64_sa_key"`
+	EtcDClientCert string `json:"b64_etcd_client_crt"`
+	EtdDClientKey  string `json:"b64_etcd_client_key"`
+	CASHA256Hash   string `json:"ca_sha256_hash"`
+}
+type Cluster struct {
+	ID         int           `json:"pk"`
+	Name       string        `json:"name"`
+	Org        string        `json:"org"`
+	Provider   string        `json:"provider"`
+	Workspace  Workspace     `json:"workspace"`
+	K8sVersion string        `json:"k8s_version"`
+	NodeCount  int           `json:"node_count"`
+	Config     ClusterConfig `json:"config"`
 }
 
 // clusterCmd represents the cluster command
@@ -43,36 +49,43 @@ to quickly create a Cobra application.`,
 	//},
 }
 
-func getClusters() *[]cluster {
-	client := &http.Client{}
+var getClustersCmd = &cobra.Command{
+	Use:   "clusters",
+	Short: "list clusters",
+	Run: func(cmd *cobra.Command, args []string) {
+		cs, err := getClusters()
+		if err != nil {
+			fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
+			cs = &[]Cluster{
+				Cluster{},
+			}
+		}
+		printClusters(*cs)
+	},
+}
+
+func printClusters(cs []Cluster) {
+	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
+	fmt.Fprintf(w, "NAME\tID\tPROVIDER\tNODES\tK8s_VERSION\t\n")
+	for _, c := range cs {
+		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t\n", c.Name, c.ID, c.Provider, c.NodeCount, c.K8sVersion)
+	}
+	w.Flush()
+}
+
+func getClusters() (*[]Cluster, error) {
 	orgID := viper.GetString("org_id")
-	req, _ := http.NewRequest("GET", fmt.Sprintf("https://api.nks.netapp.io/orgs/%s/clusters", orgID), nil)
-	req.Header.Add("Authorization", "Bearer "+viper.GetString("api_token"))
+	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%s/clusters", orgID)
+	res, err := httpRequest("GET", url)
 
-	resp, err := client.Do(req)
-	check(err)
+	data := []Cluster{}
 
-	body, err := ioutil.ReadAll(resp.Body)
-	check(err)
+	_ = json.Unmarshal(res, &data)
+	//check(err)
 
-	data := []cluster{}
-
-	err = json.Unmarshal(body, &data)
-	check(err)
-
-	return &data
+	return &data, err
 }
 
 func init() {
-	//rootCmd.AddCommand(clusterCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// clusterCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// clusterCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	getCmd.AddCommand(getClustersCmd)
 }
