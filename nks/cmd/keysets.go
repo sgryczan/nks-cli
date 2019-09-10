@@ -50,9 +50,7 @@ var getKeysetsCmd = &cobra.Command{
 		ks, err := getKeySets()
 		if err != nil {
 			fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
-			ks = &[]Keyset{
-				Keyset{},
-			}
+			ks = &[]Keyset{}
 		}
 		printKeysets(*ks)
 	},

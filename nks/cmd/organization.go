@@ -38,10 +38,11 @@ func printOrgs(o []organization) {
 	w.Flush()
 }
 
-func getOrgs() (*[]organization, error) {
+func GetOrgs() (*[]organization, error) {
 	res, err := httpRequest("GET", "https://api.nks.netapp.io/orgs")
 
 	data := []organization{}
+	fmt.Printf("Data has %d objects", len(data))
 
 	_ = json.Unmarshal(res, &data)
 	//check(err)
@@ -50,7 +51,7 @@ func getOrgs() (*[]organization, error) {
 }
 
 func getDefaultOrg() (organization, error) {
-	o, err := getOrgs()
+	o, err := GetOrgs()
 	if err != nil {
 		o = &[]organization{
 			organization{},
@@ -72,12 +73,10 @@ var organizationGetCmd = &cobra.Command{
 }
 
 func organizationGet() {
-	orgs, err := getOrgs()
+	orgs, err := GetOrgs()
 	if err != nil {
 		fmt.Printf("Error: There was an errorretrieving items::\n\t%s\n\n", err)
-		orgs = &[]organization{
-			organization{},
-		}
+		orgs = &[]organization{}
 	}
 	printOrgs(*orgs)
 }

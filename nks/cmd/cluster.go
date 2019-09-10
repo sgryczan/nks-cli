@@ -34,16 +34,61 @@ type Cluster struct {
 	Config     ClusterConfig `json:"config"`
 }
 
+type createClusterInputGCE struct {
+	Name             string `json:"name"`
+	Provider         string `json:"provider"`
+	WorkspaceID      int    `json:"workspace"`
+	ProviderKeysetID string `json:"provider_keyset"`
+
+	MasterCount           int    `json:"master_count"`
+	MasterSize            string `json:"master_size"`
+	MasterRootDiskSize    int    `json:"master_root_disk_size"`
+	MasterGPUInstanceSize string `json:"master_gpu_instance_size"`
+	MasterGPUCoreCount    int    `json:"master_gpu_core_count"`
+
+	WorkerCount           int    `json:"worker_count"`
+	WorkerSize            string `json:"worker_size"`
+	WorkerGPUInstanceSize string `json:"worker_gpu_instance_size"`
+	WorkerGPUCoreCount    int    `json:"worker_gpu_core_count"`
+	WorkerRootDiskSize    int    `json:"worker_root_disk_size"`
+
+	K8sVersion          string `json:"k8s_version`
+	K8sDashboardEnabled bool   `json:"k8s_dashboard_enabled"`
+	K8sRBACEnabled      bool   `json:"k8s_rbac_enabled"`
+	K8sPodCIDR          string `json:"k8s_pod_cidr"`
+	K8sServiceCIDR      string `json:"k8s_service_cidr"`
+
+	ProjectID string `json:"project_id"`
+
+	UserSSHKeyset string `json:"user_ssh_keyset"`
+
+	EtcdType string `json:"etcd_type"`
+	Platform string `json:"platform"`
+	Channel  string `json:"channel"`
+	Region   string `json:"region"`
+	Zone     string `json:"zone"`
+
+	Config string `json:"config"`
+
+	MinNodeCount int `json:"min_node_count"`
+	MaxNodeCount int `json:"max_node_count"`
+	Owner        int `json:"owner"`
+}
+
 // clusterCmd represents the cluster command
 var clusterCmd = &cobra.Command{
-	Use:   "cluster",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Use:   "clusters",
+	Short: "list, create, destroy clusters",
+	Long:  ``,
+	//Run: func(cmd *cobra.Command, args []string) {
+	//	fmt.Println("cluster called")
+	//},
+}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+var clusterCreateCmd = &cobra.Command{
+	Use:   "create",
+	Short: "deploy a new cluster",
+	Long:  ``,
 	//Run: func(cmd *cobra.Command, args []string) {
 	//	fmt.Println("cluster called")
 	//},
@@ -56,9 +101,7 @@ var getClustersCmd = &cobra.Command{
 		cs, err := getClusters()
 		if err != nil {
 			fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
-			cs = &[]Cluster{
-				Cluster{},
-			}
+			cs = &[]Cluster{}
 		}
 		printClusters(*cs)
 	},
@@ -84,6 +127,19 @@ func getClusters() (*[]Cluster, error) {
 	//check(err)
 
 	return &data, err
+}
+
+func createCluster() (string, error) {
+	orgID := viper.GetString("org_id")
+	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%s/clusters", orgID)
+	res, err := httpRequest("POST", url)
+
+	data := []Cluster{}
+
+	_ = json.Unmarshal(res, &data)
+	//check(err)
+
+	return "", err
 }
 
 func init() {

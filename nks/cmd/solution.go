@@ -21,7 +21,7 @@ type SolutionConfig struct {
 }
 
 type Solution struct {
-	ID          string         `json:"pk"`
+	ID          int            `json:"pk"`
 	Name        string         `json:"name"`
 	InstanceID  string         `json:"instance_id"`
 	Cluster     int            `json:"cluster"`
@@ -53,9 +53,7 @@ var getSolutionsCmd = &cobra.Command{
 		ss, err := getSolutions()
 		if err != nil {
 			fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
-			ss = &[]Solution{
-				Solution{},
-			}
+			ss = &[]Solution{}
 		}
 		printSolutions(*ss)
 	},
