@@ -101,7 +101,9 @@ var getClustersCmd = &cobra.Command{
 	Aliases: []string{"cls", "clusters"},
 	Short:   "list clusters",
 	Run: func(cmd *cobra.Command, args []string) {
-		if getClusterId != "" {
+		if getClusterAllf {
+			getAllClusters()
+		} else if getClusterId != "" {
 			i, err := strconv.Atoi(getClusterId)
 			check(err)
 			cl, err := getClusterByID(i)
@@ -141,6 +143,17 @@ func getClusters() (*[]nks.Cluster, error) {
 	return &cls, err
 }
 
+func getAllClusters() (*[]nks.Cluster, error) {
+	o, err := strconv.Atoi(viper.GetString("org_id"))
+	check(err)
+	c := newClient()
+	cls, err := c.GetAllClusters(o)
+
+	check(err)
+
+	return &cls, err
+}
+
 func getClusterByID(clusterId int) (*nks.Cluster, error) {
 	o, err := strconv.Atoi(viper.GetString("org_id"))
 	check(err)
@@ -166,8 +179,10 @@ func createCluster() (string, error) {
 }
 
 var getClusterId string
+var getClusterAllf bool
 
 func init() {
 	getCmd.AddCommand(getClustersCmd)
 	getClustersCmd.Flags().StringVarP(&getClusterId, "id", "", "", "ID of cluster")
+	getClustersCmd.Flags().BoolVarP(&getClusterAllf, "all", "a", false, "Get everything (incl. Service clusters)")
 }
