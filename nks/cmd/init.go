@@ -14,6 +14,8 @@ var configFields = []string{
 	"api_url",
 	"org_id",
 	"cluster_id",
+	"provider",
+	"provider_keyset_id",
 }
 
 var configBootStrap bool
@@ -29,10 +31,6 @@ var initCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	configCmd.AddCommand(initCmd)
-}
-
 func createConfigFile(filename string, token string) error {
 	for _, s := range configFields {
 		var v string
@@ -41,6 +39,8 @@ func createConfigFile(filename string, token string) error {
 			v = token
 		case "api_url":
 			v = "https://api.nks.netapp.io"
+		case "provider":
+			v = "gce"
 		default:
 
 		}
@@ -55,11 +55,33 @@ func createConfigFile(filename string, token string) error {
 	}
 	viper.WriteConfigAs(filename)
 
+	fmt.Println("Setting ProviderKey...")
+	setDefaultProviderKey(viper.GetString("provider"))
+
 	return nil
 }
 
 func setConfigDefaultOrg(o nks.Organization) {
 	viper.Set("org_id", o.ID)
+	viper.WriteConfig()
+}
+
+func setDefaultProviderKey(p string) {
+	kss, err := getKeySets()
+	check(err)
+	v := []nks.Keyset{}
+
+	for _, ks := range *kss {
+		if ks.Entity == p {
+			v = append(v, ks)
+		}
+	}
+
+	if len(v) == 0 {
+		fmt.Printf("no keysets found for provider %s!\n", p)
+	}
+
+	viper.Set("provider_keyset_id", v[0].ID)
 	viper.WriteConfig()
 }
 
@@ -81,4 +103,8 @@ func newConfig() error {
 	viper.SetConfigName(".nks")
 
 	return nil
+}
+
+func init() {
+	configCmd.AddCommand(initCmd)
 }

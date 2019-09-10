@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -12,69 +11,45 @@ import (
 	"github.com/spf13/viper"
 )
 
-type ClusterConfig struct {
-	AdminConf      string `json:"b64_admin_conf`
-	InstallMethod  string `json:"install_method`
-	CACrt          string `json:"b64_ca_crt"`
-	CAKey          string `json:"b64_ca_key"`
-	ProxyCert      string `json:"b64_front_proxy_ca_cert"`
-	ProxyKey       string `json:"b64_front_proxy_ca_key"`
-	SAPub          string `json:"b64_sa_pub"`
-	SAKey          string `json:"b64_sa_key"`
-	EtcDClientCert string `json:"b64_etcd_client_crt"`
-	EtdDClientKey  string `json:"b64_etcd_client_key"`
-	CASHA256Hash   string `json:"ca_sha256_hash"`
-}
-type Cluster struct {
-	ID         int           `json:"pk"`
-	Name       string        `json:"name"`
-	Org        string        `json:"org"`
-	Provider   string        `json:"provider"`
-	Workspace  Workspace     `json:"workspace"`
-	K8sVersion string        `json:"k8s_version"`
-	NodeCount  int           `json:"node_count"`
-	Config     ClusterConfig `json:"config"`
-}
-
 type createClusterInputGCE struct {
-	Name             string `json:"name"`
-	Provider         string `json:"provider"`
-	WorkspaceID      int    `json:"workspace"`
-	ProviderKeysetID string `json:"provider_keyset"`
+	Name     string `json:"name"`
+	Provider string `json:"provider"`
+	//WorkspaceID      int    `json:"workspace"`
+	ProviderKey int `json:"provider_keyset"`
 
-	MasterCount           int    `json:"master_count"`
-	MasterSize            string `json:"master_size"`
-	MasterRootDiskSize    int    `json:"master_root_disk_size"`
-	MasterGPUInstanceSize string `json:"master_gpu_instance_size"`
-	MasterGPUCoreCount    int    `json:"master_gpu_core_count"`
+	MasterCount        int    `json:"master_count"`
+	MasterSize         string `json:"master_size"`
+	MasterRootDiskSize int    `json:"master_root_disk_size"`
+	//MasterGPUInstanceSize string `json:"master_gpu_instance_size"`
+	//MasterGPUCoreCount    int    `json:"master_gpu_core_count"`
 
-	WorkerCount           int    `json:"worker_count"`
-	WorkerSize            string `json:"worker_size"`
-	WorkerGPUInstanceSize string `json:"worker_gpu_instance_size"`
-	WorkerGPUCoreCount    int    `json:"worker_gpu_core_count"`
-	WorkerRootDiskSize    int    `json:"worker_root_disk_size"`
+	WorkerCount int    `json:"worker_count"`
+	WorkerSize  string `json:"worker_size"`
+	//WorkerGPUInstanceSize string `json:"worker_gpu_instance_size"`
+	//WorkerGPUCoreCount    int    `json:"worker_gpu_core_count"`
+	//WorkerRootDiskSize    int    `json:"worker_root_disk_size"`
 
-	K8sVersion          string `json:"k8s_version`
-	K8sDashboardEnabled bool   `json:"k8s_dashboard_enabled"`
-	K8sRBACEnabled      bool   `json:"k8s_rbac_enabled"`
-	K8sPodCIDR          string `json:"k8s_pod_cidr"`
-	K8sServiceCIDR      string `json:"k8s_service_cidr"`
+	KubernetesVersion string `json:"k8s_version"`
+	DashboardEnabled  bool   `json:"k8s_dashboard_enabled"`
+	//K8sRBACEnabled      bool   `json:"k8s_rbac_enabled"`
+	//K8sPodCIDR          string `json:"k8s_pod_cidr"`
+	//K8sServiceCIDR      string `json:"k8s_service_cidr"`
 
-	ProjectID string `json:"project_id"`
+	//ProjectID string `json:"project_id"`
 
-	UserSSHKeyset string `json:"user_ssh_keyset"`
+	SSHKeyset string `json:"user_ssh_keyset"`
 
 	EtcdType string `json:"etcd_type"`
 	Platform string `json:"platform"`
 	Channel  string `json:"channel"`
 	Region   string `json:"region"`
-	Zone     string `json:"zone"`
+	//Zone     string `json:"zone"`
 
-	Config string `json:"config"`
+	//Config string `json:"config"`
 
-	MinNodeCount int `json:"min_node_count"`
-	MaxNodeCount int `json:"max_node_count"`
-	Owner        int `json:"owner"`
+	//MinNodeCount int `json:"min_node_count"`
+	//MaxNodeCount int `json:"max_node_count"`
+	//Owner        int `json:"owner"`
 }
 
 // clusterCmd represents the cluster command
@@ -87,7 +62,7 @@ var clusterCmd = &cobra.Command{
 	//},
 }
 
-var clusterCreateCmd = &cobra.Command{
+var createClusterCmd = &cobra.Command{
 	Use:   "create",
 	Short: "deploy a new cluster",
 	Long:  ``,
@@ -165,24 +140,25 @@ func getClusterByID(clusterId int) (*nks.Cluster, error) {
 	return cl, err
 }
 
-func createCluster() (string, error) {
-	orgID := viper.GetString("org_id")
-	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%s/clusters", orgID)
-	res, err := httpRequest("POST", url)
+func createCluster(c nks.Cluster) (string, error) {
 
-	data := []Cluster{}
-
-	_ = json.Unmarshal(res, &data)
-	//check(err)
-
-	return "", err
+	return "", nil
 }
 
 var getClusterId string
 var getClusterAllf bool
 
+var createClusterMasterCount int
+var createClusterMasterSize string
+
+var createClusterWorkerCount int
+var createClusterWorkerSize string
+
 func init() {
 	getCmd.AddCommand(getClustersCmd)
 	getClustersCmd.Flags().StringVarP(&getClusterId, "id", "", "", "ID of cluster")
 	getClustersCmd.Flags().BoolVarP(&getClusterAllf, "all", "a", false, "Get everything (incl. Service clusters)")
+
+	createCmd.AddCommand(createClusterCmd)
+
 }

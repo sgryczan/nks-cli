@@ -39,7 +39,7 @@ func check(e error) {
 }
 
 func readApiToken() string {
-	fmt.Printf("Enter your NKS API Token:")
+	fmt.Printf("Enter your NKS API Token: ")
 	reader := bufio.NewReader(os.Stdin)
 	token, _ := reader.ReadString('\n')
 

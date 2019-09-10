@@ -34,9 +34,10 @@ var configCmd = &cobra.Command{
 }
 
 var listConfigCmd = &cobra.Command{
-	Use:   "list",
-	Short: "list current configuration",
-	Long:  "",
+	Use:     "list",
+	Aliases: []string{"l", "li"},
+	Short:   "list current configuration",
+	Long:    "",
 	Run: func(cmd *cobra.Command, args []string) {
 		for k, v := range viper.AllSettings() {
 			fmt.Printf("%s: %v\n", k, v)
