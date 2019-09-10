@@ -7,16 +7,10 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"text/tabwriter"
 
 	nks "github.com/NetApp/nks-sdk-go/nks"
 	"github.com/spf13/viper"
 )
-
-type PrintObjInput struct {
-	Properties []string
-	Objects    interface{}
-}
 
 func newClient() *nks.APIClient {
 	client := nks.NewClient(viper.GetString("api_token"), viper.GetString("api_url"))
@@ -54,17 +48,4 @@ func readApiToken() string {
 	token = r.Replace(token)
 
 	return token
-}
-
-func PrintObj(i *PrintObjInput) error {
-	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
-	fields := i.Properties
-	s := ""
-	for _, f := range fields {
-		s += f + "\t"
-	}
-	s += "\n"
-	fmt.Fprintf(w, s)
-
-	return nil
 }

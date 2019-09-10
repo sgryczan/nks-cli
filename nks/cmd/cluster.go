@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"text/tabwriter"
 
+	nks "github.com/NetApp/nks-sdk-go/nks"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -95,38 +97,59 @@ var clusterCreateCmd = &cobra.Command{
 }
 
 var getClustersCmd = &cobra.Command{
-	Use:   "clusters",
-	Short: "list clusters",
+	Use:     "cluster",
+	Aliases: []string{"cls", "clusters"},
+	Short:   "list clusters",
 	Run: func(cmd *cobra.Command, args []string) {
-		cs, err := getClusters()
-		if err != nil {
-			fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
-			cs = &[]Cluster{}
+		if getClusterId != "" {
+			i, err := strconv.Atoi(getClusterId)
+			check(err)
+			cl, err := getClusterByID(i)
+			check(err)
+			cls := []nks.Cluster{
+				*cl,
+			}
+			printClusters(cls)
+		} else {
+			cs, err := getClusters()
+			if err != nil {
+				fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
+				cs = &[]nks.Cluster{}
+			}
+			printClusters(*cs)
 		}
-		printClusters(*cs)
 	},
 }
 
-func printClusters(cs []Cluster) {
+func printClusters(cs []nks.Cluster) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
 	fmt.Fprintf(w, "NAME\tID\tPROVIDER\tNODES\tK8s_VERSION\t\n")
 	for _, c := range cs {
-		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t\n", c.Name, c.ID, c.Provider, c.NodeCount, c.K8sVersion)
+		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t\n", c.Name, c.ID, c.Provider, c.NodeCount, c.KubernetesVersion)
 	}
 	w.Flush()
 }
 
-func getClusters() (*[]Cluster, error) {
-	orgID := viper.GetString("org_id")
-	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%s/clusters", orgID)
-	res, err := httpRequest("GET", url)
+func getClusters() (*[]nks.Cluster, error) {
+	o, err := strconv.Atoi(viper.GetString("org_id"))
+	check(err)
+	c := newClient()
+	cls, err := c.GetClusters(o)
 
-	data := []Cluster{}
+	check(err)
 
-	_ = json.Unmarshal(res, &data)
-	//check(err)
+	return &cls, err
+}
 
-	return &data, err
+func getClusterByID(clusterId int) (*nks.Cluster, error) {
+	o, err := strconv.Atoi(viper.GetString("org_id"))
+	check(err)
+	c := newClient()
+	cl, err := c.GetCluster(o, clusterId)
+
+	check(err)
+
+	return cl, err
 }
 
 func createCluster() (string, error) {
@@ -142,6 +165,9 @@ func createCluster() (string, error) {
 	return "", err
 }
 
+var getClusterId string
+
 func init() {
 	getCmd.AddCommand(getClustersCmd)
+	getClustersCmd.Flags().StringVarP(&getClusterId, "id", "", "", "ID of cluster")
 }

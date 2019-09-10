@@ -3,23 +3,12 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"text/tabwriter"
 
 	nks "github.com/NetApp/nks-sdk-go/nks"
 	"github.com/spf13/cobra"
 )
-
-var useHttp bool
-
-type organization struct {
-	ID                 int    `json:"pk,Number"`
-	Name               string `json:"name"`
-	Slug               string `json:"slug"`
-	Logo               string `json:"logo"`
-	EnableExperimental string `json:"enable_experimental_feature,Bool"`
-	CreatedTime        string `json:"created"`
-	UpdatedTime        string `json:"updated"`
-}
 
 // organizationCmd represents the organization command
 var organizationCmd = &cobra.Command{
@@ -45,8 +34,6 @@ func GetOrgs() (*[]nks.Organization, error) {
 	data, err := c.GetOrganizations()
 	check(err)
 
-	fmt.Printf("Data has %d objects\n", len(data))
-
 	return &data, err
 }
 
@@ -61,24 +48,46 @@ func getDefaultOrg() (nks.Organization, error) {
 }
 
 // organizationCmd represents the organization command
-var organizationGetCmd = &cobra.Command{
-	Use:   "orgs",
-	Short: "list organizations",
-	Long:  ``,
+var getOrganizationsCmd = &cobra.Command{
+	Use:     "orgs",
+	Aliases: []string{"o", "organizations"},
+	Short:   "list organizations",
+	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		organizationGet()
+		if getOrgsId != "" {
+			i, err := strconv.Atoi(getOrgsId)
+			check(err)
+			getOrganizationByID(i)
+		} else {
+			getOrganizations()
+		}
 	},
 }
 
-func organizationGet() {
+func getOrganizations() {
 	orgs, err := GetOrgs()
 	if err != nil {
-		fmt.Printf("Error: There was an errorretrieving items::\n\t%s\n\n", err)
+		fmt.Printf("Error: There was an error retrieving items::\n\t%s\n\n", err)
 		orgs = &[]nks.Organization{}
 	}
 	printOrgs(orgs)
 }
 
+func getOrganizationByID(id int) {
+	c := newClient()
+	o, err := c.GetOrganization(id)
+	check(err)
+
+	orgs := []nks.Organization{
+		*o,
+	}
+
+	printOrgs(&orgs)
+}
+
+var getOrgsId string
+
 func init() {
-	getCmd.AddCommand(organizationGetCmd)
+	getCmd.AddCommand(getOrganizationsCmd)
+	getOrganizationsCmd.Flags().StringVarP(&getOrgsId, "id", "", "", "ID of organization")
 }
