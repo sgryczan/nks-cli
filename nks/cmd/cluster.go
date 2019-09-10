@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
 	"text/tabwriter"
 
 	nks "github.com/NetApp/nks-sdk-go/nks"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -17,9 +19,9 @@ type createClusterInputGCE struct {
 	//WorkspaceID      int    `json:"workspace"`
 	ProviderKey int `json:"provider_keyset"`
 
-	MasterCount        int    `json:"master_count"`
-	MasterSize         string `json:"master_size"`
-	MasterRootDiskSize int    `json:"master_root_disk_size"`
+	MasterCount int    `json:"master_count"`
+	MasterSize  string `json:"master_size"`
+	//MasterRootDiskSize int    `json:"master_root_disk_size"`
 	//MasterGPUInstanceSize string `json:"master_gpu_instance_size"`
 	//MasterGPUCoreCount    int    `json:"master_gpu_core_count"`
 
@@ -31,44 +33,77 @@ type createClusterInputGCE struct {
 
 	KubernetesVersion string `json:"k8s_version"`
 	DashboardEnabled  bool   `json:"k8s_dashboard_enabled"`
-	//K8sRBACEnabled      bool   `json:"k8s_rbac_enabled"`
+	RbacEnabled       bool   `json:"k8s_rbac_enabled"`
 	//K8sPodCIDR          string `json:"k8s_pod_cidr"`
 	//K8sServiceCIDR      string `json:"k8s_service_cidr"`
 
 	//ProjectID string `json:"project_id"`
 
-	SSHKeyset string `json:"user_ssh_keyset"`
+	SSHKeySet int `json:"user_ssh_keyset"`
 
-	EtcdType string `json:"etcd_type"`
-	Platform string `json:"platform"`
-	Channel  string `json:"channel"`
-	Region   string `json:"region"`
-	//Zone     string `json:"zone"`
+	EtcdType  string         `json:"etcd_type"`
+	Platform  string         `json:"platform"`
+	Channel   string         `json:"channel"`
+	Region    string         `json:"region"`
+	Solutions []nks.Solution `json:"solutions"`
 
 	//Config string `json:"config"`
 
 	//MinNodeCount int `json:"min_node_count"`
 	//MaxNodeCount int `json:"max_node_count"`
 	//Owner        int `json:"owner"`
+	//ProviderSubnetID    string
+	//ProviderSubnetCidr  string
+	//ProviderNetworkID   string
+	//ProviderNetworkCIDR string
 }
 
-// clusterCmd represents the cluster command
-var clusterCmd = &cobra.Command{
-	Use:   "clusters",
-	Short: "list, create, destroy clusters",
-	Long:  ``,
-	//Run: func(cmd *cobra.Command, args []string) {
-	//	fmt.Println("cluster called")
-	//},
+var gceDefaults = map[string]interface{}{
+	"Provider":          &CurrentConfig.Provider,
+	"ProviderKey":       &CurrentConfig.ProviderKeySetID,
+	"MasterCount":       1,
+	"MasterSize":        "n1-standard-1",
+	"WorkerCount":       2,
+	"WorkerSize":        "n1-standard-1",
+	"Region":            "us-west1-c",
+	"KubernetesVersion": "v1.13.2",
+	"RbacEnabled":       true,
+	"DashboardEnabled":  true,
+	"EtcdType":          "self_hosted",
+	"Platform":          "coreos",
+	"Channel":           "stable",
+	"SSHKeySet":         &CurrentConfig.SSHKeySetId,
+	"Solutions":         []nks.Solution{nks.Solution{Solution: "helm_tiller"}},
+	//"ProviderSubnetID":    "__new__",
+	//"ProviderSubnetCidr":  "172.23.1.0/24",
+	//"ProviderNetworkID":   "__new__",
+	//"ProviderNetworkCIDR": "172.23.0.0/16",
 }
 
 var createClusterCmd = &cobra.Command{
-	Use:   "create",
+	Use:   "cluster",
 	Short: "deploy a new cluster",
 	Long:  ``,
-	//Run: func(cmd *cobra.Command, args []string) {
-	//	fmt.Println("cluster called")
-	//},
+	Run: func(cmd *cobra.Command, args []string) {
+		template := generateClusterTemplate()
+		template.Name = createClusterNamef
+		//fmt.Printf("Template:\n%+v", template)
+
+		newCluster, err := createCluster(template)
+		check(err)
+		printClusters([]nks.Cluster{newCluster})
+
+	},
+}
+
+var deleteClusterCmd = &cobra.Command{
+	Use:   "cluster",
+	Short: "delete a cluster",
+	Long:  ``,
+	Run: func(cmd *cobra.Command, args []string) {
+		err := deleteClusterByID(deleteClusterIDf)
+		check(err)
+	},
 }
 
 var getClustersCmd = &cobra.Command{
@@ -100,9 +135,9 @@ var getClustersCmd = &cobra.Command{
 
 func printClusters(cs []nks.Cluster) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
-	fmt.Fprintf(w, "NAME\tID\tPROVIDER\tNODES\tK8s_VERSION\t\n")
+	fmt.Fprintf(w, "NAME\tID\tPROVIDER\tNODES\tK8s_VERSION\tSTATE\t\n")
 	for _, c := range cs {
-		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t\n", c.Name, c.ID, c.Provider, c.NodeCount, c.KubernetesVersion)
+		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t\n", c.Name, c.ID, c.Provider, c.NodeCount, c.KubernetesVersion, c.State)
 	}
 	w.Flush()
 }
@@ -140,19 +175,47 @@ func getClusterByID(clusterId int) (*nks.Cluster, error) {
 	return cl, err
 }
 
-func createCluster(c nks.Cluster) (string, error) {
+func deleteClusterByID(clusterId int) error {
+	o := CurrentConfig.OrgID
+	c := newClient()
+	err := c.DeleteCluster(o, clusterId)
 
-	return "", nil
+	check(err)
+	fmt.Printf("Cluster ID %d deletion initialized.\n", clusterId)
+	return nil
+}
+
+func createCluster(cl createClusterInputGCE) (nks.Cluster, error) {
+	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/clusters", CurrentConfig.OrgID)
+	b, err := json.Marshal(cl)
+	check(err)
+	//fmt.Printf("\nSending request with body:\n%s\n", b)
+	res, err := httpRequestPost("POST", url, b)
+	//fmt.Printf("Got response: \n%s", string(res))
+	check(err)
+
+	data := nks.Cluster{}
+
+	err = json.Unmarshal(res, &data)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return data, nil
+}
+
+func generateClusterTemplate() createClusterInputGCE {
+	c := createClusterInputGCE{}
+	mapstructure.Decode(gceDefaults, &c)
+	return c
 }
 
 var getClusterId string
 var getClusterAllf bool
 
-var createClusterMasterCount int
-var createClusterMasterSize string
+var createClusterNamef string
 
-var createClusterWorkerCount int
-var createClusterWorkerSize string
+var deleteClusterIDf int
 
 func init() {
 	getCmd.AddCommand(getClustersCmd)
@@ -160,5 +223,13 @@ func init() {
 	getClustersCmd.Flags().BoolVarP(&getClusterAllf, "all", "a", false, "Get everything (incl. Service clusters)")
 
 	createCmd.AddCommand(createClusterCmd)
+	createClusterCmd.Flags().StringVarP(&createClusterNamef, "name", "n", "", "ID of cluster")
+	e := createClusterCmd.MarkFlagRequired("name")
+	check(e)
+
+	deleteCmd.AddCommand(deleteClusterCmd)
+	deleteClusterCmd.Flags().IntVarP(&deleteClusterIDf, "id", "", 0, "ID of cluster to delete")
+	e = deleteClusterCmd.MarkFlagRequired("id")
+	check(e)
 
 }

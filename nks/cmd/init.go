@@ -16,7 +16,10 @@ var configFields = []string{
 	"cluster_id",
 	"provider",
 	"provider_keyset_id",
+	"ssh_keyset_id",
 }
+
+var CurrentConfig = &config{}
 
 var configBootStrap bool
 
@@ -33,7 +36,7 @@ var initCmd = &cobra.Command{
 
 func createConfigFile(filename string, token string) error {
 	for _, s := range configFields {
-		var v string
+		var v interface{}
 		switch s {
 		case "api_token":
 			v = token
@@ -41,6 +44,8 @@ func createConfigFile(filename string, token string) error {
 			v = "https://api.nks.netapp.io"
 		case "provider":
 			v = "gce"
+		case "cluster_id":
+			v = 0
 		default:
 
 		}
@@ -55,8 +60,11 @@ func createConfigFile(filename string, token string) error {
 	}
 	viper.WriteConfigAs(filename)
 
-	fmt.Println("Setting ProviderKey...")
+	fmt.Println("Setting Provider Key...")
 	setDefaultProviderKey(viper.GetString("provider"))
+
+	fmt.Println("Setting SSH Key...")
+	setDefaultSSHKey(viper.GetString("provider"))
 
 	return nil
 }
@@ -85,6 +93,25 @@ func setDefaultProviderKey(p string) {
 	viper.WriteConfig()
 }
 
+func setDefaultSSHKey(s string) {
+	kss, err := getKeySets()
+	check(err)
+	v := []nks.Keyset{}
+
+	for _, ks := range *kss {
+		if ks.Category == "user_ssh" {
+			v = append(v, ks)
+		}
+	}
+
+	if len(v) == 0 {
+		fmt.Println("No user ssh keysets found")
+	}
+
+	viper.Set("ssh_keyset_id", v[0].ID)
+	viper.WriteConfig()
+}
+
 func bootstrapConfigFile() {
 	configBootStrap = true
 	newConfig()
@@ -101,6 +128,13 @@ func newConfig() error {
 	// Search config in home directory with name ".nks" (without extension).
 	viper.AddConfigPath(home)
 	viper.SetConfigName(".nks")
+
+	err := viper.Unmarshal(CurrentConfig)
+	check(err)
+	for k, v := range viper.AllSettings() {
+		fmt.Printf("%s: %v\n", k, v)
+	}
+	fmt.Printf("Config: %+v", CurrentConfig)
 
 	return nil
 }

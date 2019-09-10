@@ -23,6 +23,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type config struct {
+	OrgID            int    `mapstructure:"org_id"`
+	Provider         string `mapstructure:"provider"`
+	ProviderKeySetID int    `mapstructure:"provider_keyset_id"`
+	ApiToken         string `mapstructure:"api_token"`
+	ApiURL           string `mapstructure:"api_url"`
+	ClusterId        int    `mapstructure:"cluster_id"`
+	SSHKeySetId      int    `mapstructure:"ssh_keyset_id"`
+}
+
 // configCmd represents the config command
 var configCmd = &cobra.Command{
 	Use:   "config",

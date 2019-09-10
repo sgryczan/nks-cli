@@ -62,7 +62,7 @@ var getSolutionsCmd = &cobra.Command{
 func getSolutions() (*[]Solution, error) {
 	orgID := viper.GetString("org_id")
 	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%s/solutions", orgID)
-	res, err := httpRequest("GET", url)
+	res, err := httpRequest("GET", url, "")
 
 	data := []Solution{}
 

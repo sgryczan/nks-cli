@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -17,11 +18,31 @@ func newClient() *nks.APIClient {
 	return client
 }
 
-func httpRequest(method string, url string) ([]byte, error) {
+func httpRequest(method string, url string, b string) ([]byte, error) {
 	var httpClient = http.Client{}
-	req, _ := http.NewRequest(method, url, nil)
-	req.Header.Add("Authorization", "Bearer "+viper.GetString("api_token"))
 
+	req, _ := http.NewRequest(method, url, nil)
+
+	fmt.Printf("http_request:\n%+v", req)
+
+	req.Header.Add("Authorization", "Bearer "+viper.GetString("api_token"))
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	return body, err
+}
+
+func httpRequestPost(method string, url string, b []byte) ([]byte, error) {
+	var httpClient = http.Client{}
+
+	req, _ := http.NewRequest(method, url, bytes.NewBuffer(b))
+	//fmt.Printf("http_request:\n%+v", req)
+
+	req.Header.Add("Authorization", "Bearer "+viper.GetString("api_token"))
+	req.Header.Set("Content-Type", "application/json")
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
