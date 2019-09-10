@@ -1,13 +1,15 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"text/tabwriter"
 
+	nks "github.com/NetApp/nks-sdk-go/nks"
 	"github.com/spf13/cobra"
 )
+
+var useHttp bool
 
 type organization struct {
 	ID                 int    `json:"pk,Number"`
@@ -29,33 +31,29 @@ var organizationCmd = &cobra.Command{
 	//},
 }
 
-func printOrgs(o []organization) {
+func printOrgs(o *[]nks.Organization) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
 	fmt.Fprintf(w, "NAME\tID\t\n")
-	for _, org := range o {
+	for _, org := range *o {
 		fmt.Fprintf(w, "%s\t%d\t\n", org.Name, org.ID)
 	}
 	w.Flush()
 }
 
-func GetOrgs() (*[]organization, error) {
-	res, err := httpRequest("GET", "https://api.nks.netapp.io/orgs")
+func GetOrgs() (*[]nks.Organization, error) {
+	c := newClient()
+	data, err := c.GetOrganizations()
+	check(err)
 
-	data := []organization{}
-	fmt.Printf("Data has %d objects", len(data))
-
-	_ = json.Unmarshal(res, &data)
-	//check(err)
+	fmt.Printf("Data has %d objects\n", len(data))
 
 	return &data, err
 }
 
-func getDefaultOrg() (organization, error) {
+func getDefaultOrg() (nks.Organization, error) {
 	o, err := GetOrgs()
 	if err != nil {
-		o = &[]organization{
-			organization{},
-		}
+		o = &[]nks.Organization{}
 	}
 
 	// First Org returned is the default
@@ -76,9 +74,9 @@ func organizationGet() {
 	orgs, err := GetOrgs()
 	if err != nil {
 		fmt.Printf("Error: There was an errorretrieving items::\n\t%s\n\n", err)
-		orgs = &[]organization{}
+		orgs = &[]nks.Organization{}
 	}
-	printOrgs(*orgs)
+	printOrgs(orgs)
 }
 
 func init() {

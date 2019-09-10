@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	nks "github.com/NetApp/nks-sdk-go/nks"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -57,7 +58,7 @@ func createConfigFile(filename string, token string) error {
 	return nil
 }
 
-func setConfigDefaultOrg(o organization) {
+func setConfigDefaultOrg(o nks.Organization) {
 	viper.Set("org_id", o.ID)
 	viper.WriteConfig()
 }

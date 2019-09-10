@@ -9,6 +9,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	nks "github.com/NetApp/nks-sdk-go/nks"
 	"github.com/spf13/viper"
 )
 
@@ -17,8 +18,13 @@ type PrintObjInput struct {
 	Objects    interface{}
 }
 
+func newClient() *nks.APIClient {
+	client := nks.NewClient(viper.GetString("api_token"), viper.GetString("api_url"))
+	return client
+}
+
 func httpRequest(method string, url string) ([]byte, error) {
-	var httpClient = &http.Client{}
+	var httpClient = http.Client{}
 	req, _ := http.NewRequest(method, url, nil)
 	req.Header.Add("Authorization", "Bearer "+viper.GetString("api_token"))
 
@@ -34,6 +40,7 @@ func httpRequest(method string, url string) ([]byte, error) {
 func check(e error) {
 	if e != nil {
 		fmt.Println(e)
+		os.Exit(1)
 	}
 }
 
