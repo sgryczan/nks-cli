@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// organizationCmd represents the organization command
 var organizationCmd = &cobra.Command{
 	Use:   "organization",
 	Aliases: []string{"orgs", "org", "organizations"},
@@ -48,7 +47,7 @@ func getDefaultOrg() (nks.Organization, error) {
 	return (*o)[0], err
 }
 
-// organizationCmd represents the organization command
+
 var listOrganizationsCmd = &cobra.Command{
 	Use:     "list",
 	Short:   "list organizations",
@@ -58,7 +57,7 @@ var listOrganizationsCmd = &cobra.Command{
 	},
 }
 
-// organizationCmd represents the organization command
+
 var getOrganizationsCmd = &cobra.Command{
 	Use:     "get",
 	Short:   "get organization details",

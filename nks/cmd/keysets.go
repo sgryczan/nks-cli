@@ -34,7 +34,6 @@ type Keyset struct {
 	Created    string `json:"created"`
 }
 
-// keysetsCmd represents the keysets command
 var keysetsCmd = &cobra.Command{
 	Use: "keysets",
 	Aliases: []string{"ks", "key", "keys"},

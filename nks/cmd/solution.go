@@ -10,7 +10,6 @@ import (
 	nks "github.com/NetApp/nks-sdk-go/nks"
 )
 
-// solutionCmd represents the solution command
 var solutionsCmd = &cobra.Command{
 	Use:   "solutions",
 	Aliases: []string{"sol", "solu", "chart", "charts"},

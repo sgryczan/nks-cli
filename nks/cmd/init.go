@@ -23,7 +23,6 @@ var CurrentConfig = &config{}
 
 var configBootStrap bool
 
-// initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "create a new configuration",
