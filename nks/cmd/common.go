@@ -15,6 +15,8 @@ import (
 
 var flagClusterId int
 var flagSolutionId int
+var flagForce bool
+
 
 func newClient() *nks.APIClient {
 	client := nks.NewClient(viper.GetString("api_token"), viper.GetString("api_url"))

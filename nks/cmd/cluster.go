@@ -92,7 +92,7 @@ var gceDefaults = map[string]interface{}{
 
 var clusterCmd = &cobra.Command{
 	Use:   "cluster",
-	Aliases: []string{"cl", "clusters"},
+	Aliases: []string{"cl", "clus", "clu", "clusters"},
 	Short: "manage cluster resources",
 	Long:  ``,
 	//Run: func(cmd *cobra.Command, args []string) {
@@ -138,6 +138,7 @@ var createClusterCmd = &cobra.Command{
 
 var deleteClusterCmd = &cobra.Command{
 	Use:   "delete",
+	Aliases: []string{"rm", "del"},
 	Short: "delete a cluster",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -212,8 +213,8 @@ func printClusters(cs []nks.Cluster) {
 }
 
 func getClusters() (*[]nks.Cluster, error) {
-	o, err := strconv.Atoi(viper.GetString("org_id"))
-	check(err)
+	o := CurrentConfig.OrgID
+
 	c := newClient()
 	cls, err := c.GetClusters(o)
 
@@ -247,10 +248,18 @@ func getClusterByID(clusterId int) (*nks.Cluster, error) {
 func deleteClusterByID(clusterId int) error {
 	o := CurrentConfig.OrgID
 	c := newClient()
-	err := c.DeleteCluster(o, clusterId)
+	var err error
 
+	if flagForce {
+		err = c.ForceDeleteCluster(o, clusterId)
+	} else {
+		err = c.DeleteCluster(o, clusterId)
+	}
 	check(err)
-	fmt.Printf("Cluster ID %d deletion initialized.\n", clusterId)
+
+	cl, err := getAllClusters()
+	check(err)
+	printClusters(*cl)
 	return nil
 }
 
@@ -299,7 +308,9 @@ func init() {
 	e := createClusterCmd.MarkFlagRequired("name")
 	check(e)
 
-	deleteClusterCmd.Flags().IntVarP(&deleteClusterIDf, "id", "", 0, "ID of cluster to delete")
+
+	deleteClusterCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "ID of cluster to delete")
+	deleteClusterCmd.Flags().IntVarP(&deleteClusterIDf, "id", "i", 0, "ID of cluster to delete")
 	e = deleteClusterCmd.MarkFlagRequired("id")
 	check(e)
 }
