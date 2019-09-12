@@ -10,41 +10,6 @@ import (
 	nks "github.com/NetApp/nks-sdk-go/nks"
 )
 
-type SolutionConfig struct {
-	Repository     string `json:"repository"`
-	RequiredValues map[string]string
-	Namespace      string `json:"namespace"`
-	Values         string `json:"values_yaml"`
-	ChartPath      string `json:"chart_path"`
-	Logo           string `json:"logo"`
-	ReleaseName    string `json:"release_name"`
-}
-
-type Solution struct {
-	ID          int            `json:"pk"`
-	Name        string         `json:"name"`
-	InstanceID  string         `json:"instance_id"`
-	Cluster     int            `json:"cluster"`
-	Solution    string         `json:"solution"`
-	Installer   string         `json:"installer"`
-	Keyset      string         `json:"keyset"`
-	KeysetName  string         `json:"keyset_name"`
-	Version     string         `json:"version"`
-	State       string         `json:"state"`
-	URL         string         `json:"url"`
-	Username    string         `json:"username"`
-	Password    string         `json:"password"`
-	MaxNodes    string         `json:"max_nodes"`
-	GitRepo     string         `json:"git_repo"`
-	GitPath     string         `json:"git_path"`
-	Initial     bool           `json:"initial"`
-	Config      SolutionConfig `json:"config"`
-	ExtraData   map[string]string
-	CreatedTime string `json:"created"`
-	UpdatedTime string `json:"updated"`
-	IsDeletable bool   `json:"is_deleteable"`
-}
-
 // solutionCmd represents the solution command
 var solutionsCmd = &cobra.Command{
 	Use:   "solutions",
