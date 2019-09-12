@@ -53,7 +53,7 @@ func createConfigFile(filename string, token string) error {
 	}
 	o, err := getDefaultOrg()
 	if err != nil {
-		fmt.Errorf("Could not get default organization")
+		fmt.Println("Could not get default organization")
 	} else {
 		fmt.Println("Setting default org..")
 		setConfigDefaultOrg(o)

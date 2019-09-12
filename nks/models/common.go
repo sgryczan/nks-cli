@@ -1,4 +1,4 @@
-package lib
+package models
 
 import (
 	"encoding/json"

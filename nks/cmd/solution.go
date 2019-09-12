@@ -6,7 +6,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-	lib "gitlab.com/sgryczan/nks-cli/nks/lib"
+	models "gitlab.com/sgryczan/nks-cli/nks/models"
 	nks "github.com/NetApp/nks-sdk-go/nks"
 )
 
@@ -150,7 +150,7 @@ func printSolutions(s []nks.Solution) {
 
 func createSolution(s string, orgId, clusterId int) (*nks.Solution, error) {
 
-	template, err := lib.GetTemplateAsJson(s)
+	template, err := models.GetTemplateAsJson(s)
 	check(err)
 
 	c := newClient()
