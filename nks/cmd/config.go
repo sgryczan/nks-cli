@@ -17,7 +17,6 @@ package cmd
 
 import (
 	"fmt"
-
 	"github.com/spf13/viper"
 
 	"github.com/spf13/cobra"
@@ -77,6 +76,22 @@ var configSetTokenCmd = &cobra.Command{
 	},
 }
 
+var configSetClusterCmd = &cobra.Command{
+	Use:   "cluster",
+	Short: "set default cluser",
+	Long:  "",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		setCluster(flagClusterId)
+	},
+}
+
+func setCluster(clusterId int) {
+	viper.Set("cluster_id", clusterId)
+	viper.WriteConfig()
+	CurrentConfig.ClusterId = clusterId
+}
+
 var configSetURLCmd = &cobra.Command{
 	Use:   "url",
 	Short: "set api url",
@@ -87,10 +102,17 @@ var configSetURLCmd = &cobra.Command{
 	},
 }
 
+
+
 func init() {
 	rootCmd.AddCommand(configCmd)
 	configCmd.AddCommand(listConfigCmd)
 	configCmd.AddCommand(configSetCmd)
 	configSetCmd.AddCommand(configSetTokenCmd)
 	configSetCmd.AddCommand(configSetURLCmd)
+	configSetCmd.AddCommand(configSetClusterCmd)
+
+	configSetClusterCmd.Flags().IntVarP(&flagClusterId, "id", "i", CurrentConfig.ClusterId, "ID of target cluster")
+	e := configSetClusterCmd.MarkFlagRequired("id")
+	check(e)
 }

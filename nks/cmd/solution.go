@@ -76,6 +76,7 @@ var listSolutionsCmd = &cobra.Command{
 			fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
 			ss = &[]nks.Solution{}
 		}
+		fmt.Printf("(cluster id: %d)\n\n", clusterId)
 		printSolutions(*ss)
 	},
 }
@@ -164,9 +165,6 @@ func deleteSolution(orgId, clusterId, solutionId int) (error) {
 	err := c.DeleteSolution(orgId, clusterId, solutionId)
 	return err
 }
-
-var flagClusterId int
-var flagSolutionId int
 
 func init() {
 	rootCmd.AddCommand(solutionsCmd)

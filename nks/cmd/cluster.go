@@ -129,6 +129,10 @@ var createClusterCmd = &cobra.Command{
 		check(err)
 		printClusters([]nks.Cluster{newCluster})
 
+		if CurrentConfig.ClusterId == 0 {
+			setCluster(newCluster.ID)	
+		}
+
 	},
 }
 
@@ -197,7 +201,12 @@ func printClusters(cs []nks.Cluster) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
 	fmt.Fprintf(w, "NAME\tID\tPROVIDER\tNODES\tK8s_VERSION\tSTATE\t\n")
 	for _, c := range cs {
-		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t\n", c.Name, c.ID, c.Provider, c.NodeCount, c.KubernetesVersion, c.State)
+		if c.ID == CurrentConfig.ClusterId {
+			fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v (default)\t\n", c.Name, c.ID, c.Provider, c.NodeCount, c.KubernetesVersion, c.State)
+		} else {
+			fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t\n", c.Name, c.ID, c.Provider, c.NodeCount, c.KubernetesVersion, c.State)
+		}
+		
 	}
 	w.Flush()
 }
