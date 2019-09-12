@@ -13,6 +13,16 @@ import (
 	"github.com/spf13/viper"
 )
 
+var getClusterId string
+var getClusterAllf bool
+
+var createClusterNamef string
+var createClusterNumWorkers int
+var createClusterWorkerSize string
+var createClusterNumMasters int
+var createClusterMasterSize string
+var deleteClusterIDf int
+
 type createClusterInputGCE struct {
 	Name     string `json:"name"`
 	Provider string `json:"provider"`
@@ -80,14 +90,40 @@ var gceDefaults = map[string]interface{}{
 	//"ProviderNetworkCIDR": "172.23.0.0/16",
 }
 
-var createClusterCmd = &cobra.Command{
+var clusterCmd = &cobra.Command{
 	Use:   "cluster",
+	Aliases: []string{"cl", "clusters"},
+	Short: "manage cluster resources",
+	Long:  ``,
+	//Run: func(cmd *cobra.Command, args []string) {
+	//	
+	//},
+}
+
+var createClusterCmd = &cobra.Command{
+	Use:   "create",
 	Short: "deploy a new cluster",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		template := generateClusterTemplate()
 		template.Name = createClusterNamef
 		//fmt.Printf("Template:\n%+v", template)
+
+		if createClusterNumMasters != 0 {
+			template.MasterCount = createClusterNumMasters
+		}
+
+		if createClusterMasterSize != "" {
+			template.MasterSize = createClusterMasterSize
+		}
+
+		if createClusterNumWorkers != 0 {
+			template.WorkerCount = createClusterNumWorkers
+		}
+
+		if createClusterWorkerSize != "" {
+			template.WorkerSize = createClusterWorkerSize
+		}
 
 		newCluster, err := createCluster(template)
 		check(err)
@@ -97,7 +133,7 @@ var createClusterCmd = &cobra.Command{
 }
 
 var deleteClusterCmd = &cobra.Command{
-	Use:   "cluster",
+	Use:   "delete",
 	Short: "delete a cluster",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -106,8 +142,32 @@ var deleteClusterCmd = &cobra.Command{
 	},
 }
 
+var listClustersCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"l", "li"},
+	Short:   "list clusters",
+	Run: func(cmd *cobra.Command, args []string) {
+		c := &([]nks.Cluster{})
+		var err error
+
+		if getClusterAllf {
+			c, err = getAllClusters()
+			if err != nil {
+				fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
+			}
+		} else {
+			c, err = getClusters()
+			if err != nil {
+				fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
+			}
+			
+		}
+		printClusters(*c)
+	},
+}
+
 var getClustersCmd = &cobra.Command{
-	Use:     "cluster",
+	Use:     "get",
 	Aliases: []string{"cls", "clusters"},
 	Short:   "list clusters",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -210,26 +270,27 @@ func generateClusterTemplate() createClusterInputGCE {
 	return c
 }
 
-var getClusterId string
-var getClusterAllf bool
-
-var createClusterNamef string
-
-var deleteClusterIDf int
-
 func init() {
-	getCmd.AddCommand(getClustersCmd)
+	rootCmd.AddCommand(clusterCmd)
+	clusterCmd.AddCommand(getClustersCmd)
+	clusterCmd.AddCommand(createClusterCmd)
+	clusterCmd.AddCommand(deleteClusterCmd)
+	clusterCmd.AddCommand(listClustersCmd)
+
+
+	listClustersCmd.Flags().StringVarP(&getClusterId, "id", "", "", "ID of cluster")
 	getClustersCmd.Flags().StringVarP(&getClusterId, "id", "", "", "ID of cluster")
 	getClustersCmd.Flags().BoolVarP(&getClusterAllf, "all", "a", false, "Get everything (incl. Service clusters)")
 
-	createCmd.AddCommand(createClusterCmd)
 	createClusterCmd.Flags().StringVarP(&createClusterNamef, "name", "n", "", "ID of cluster")
+	createClusterCmd.Flags().StringVarP(&createClusterMasterSize, "master-size", "", "", "Instance size of master nodes")
+	createClusterCmd.Flags().IntVarP(&createClusterNumMasters, "num-masters", "m", 0, "Number of master nodes (default : 1)")
+	createClusterCmd.Flags().StringVarP(&createClusterWorkerSize, "worker-size", "", "", "Instance size of worker nodes")
+	createClusterCmd.Flags().IntVarP(&createClusterNumWorkers, "num-workers", "w", 0, "Number of worker nodes (default: 2)")
 	e := createClusterCmd.MarkFlagRequired("name")
 	check(e)
 
-	deleteCmd.AddCommand(deleteClusterCmd)
 	deleteClusterCmd.Flags().IntVarP(&deleteClusterIDf, "id", "", 0, "ID of cluster to delete")
 	e = deleteClusterCmd.MarkFlagRequired("id")
 	check(e)
-
 }

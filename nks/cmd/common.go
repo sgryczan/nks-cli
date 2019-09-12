@@ -23,7 +23,7 @@ func httpRequest(method string, url string, b string) ([]byte, error) {
 
 	req, _ := http.NewRequest(method, url, nil)
 
-	fmt.Printf("http_request:\n%+v", req)
+	//fmt.Printf("http_request:\n%+v", req)
 
 	req.Header.Add("Authorization", "Bearer "+viper.GetString("api_token"))
 	resp, err := httpClient.Do(req)

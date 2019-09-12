@@ -13,7 +13,8 @@ import (
 // organizationCmd represents the organization command
 var organizationCmd = &cobra.Command{
 	Use:   "organization",
-	Short: "A brief description of your command",
+	Aliases: []string{"orgs", "org", "organizations"},
+	Short: "manage organizations",
 	Long:  ``,
 	//Run: func(cmd *cobra.Command, args []string) {
 	//	fmt.Println("organization called")
@@ -48,10 +49,19 @@ func getDefaultOrg() (nks.Organization, error) {
 }
 
 // organizationCmd represents the organization command
-var getOrganizationsCmd = &cobra.Command{
-	Use:     "orgs",
-	Aliases: []string{"o", "organizations"},
+var listOrganizationsCmd = &cobra.Command{
+	Use:     "list",
 	Short:   "list organizations",
+	Long:    ``,
+	Run: func(cmd *cobra.Command, args []string) {
+		getOrganizations()
+	},
+}
+
+// organizationCmd represents the organization command
+var getOrganizationsCmd = &cobra.Command{
+	Use:     "get",
+	Short:   "get organization details",
 	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		if getOrgsId != "" {
@@ -88,6 +98,8 @@ func getOrganizationByID(id int) {
 var getOrgsId string
 
 func init() {
-	getCmd.AddCommand(getOrganizationsCmd)
+	rootCmd.AddCommand(organizationCmd)
+	organizationCmd.AddCommand(getOrganizationsCmd)
+	organizationCmd.AddCommand(listOrganizationsCmd)
 	getOrganizationsCmd.Flags().StringVarP(&getOrgsId, "id", "", "", "ID of organization")
 }

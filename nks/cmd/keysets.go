@@ -37,7 +37,7 @@ type Keyset struct {
 // keysetsCmd represents the keysets command
 var keysetsCmd = &cobra.Command{
 	Use: "keysets",
-
+	Aliases: []string{"ks", "key", "keys"},
 	Short: "add or edit keysets",
 	Long:  ``,
 	/* Run: func(cmd *cobra.Command, args []string) {
@@ -46,8 +46,8 @@ var keysetsCmd = &cobra.Command{
 }
 
 var getKeysetsCmd = &cobra.Command{
-	Use:     "keysets",
-	Aliases: []string{"ks"},
+	Use:     "list",
+	Aliases: []string{"l", "li"},
 	Short:   "list keysets",
 	Run: func(cmd *cobra.Command, args []string) {
 		ks, err := getKeySets()
@@ -78,5 +78,6 @@ func getKeySets() (*[]nks.Keyset, error) {
 }
 
 func init() {
-	getCmd.AddCommand(getKeysetsCmd)
+	keysetsCmd.AddCommand(getKeysetsCmd)
+	rootCmd.AddCommand(keysetsCmd)
 }

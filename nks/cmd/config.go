@@ -36,6 +36,7 @@ type config struct {
 // configCmd represents the config command
 var configCmd = &cobra.Command{
 	Use:   "config",
+	Aliases: []string{"conf"},
 	Short: "nks cli configuration",
 	Long:  `Various commands for configuring nks cli`,
 	//Run: func(cmd *cobra.Command, args []string) {
