@@ -4,6 +4,6 @@ import (
 	"testing"
 )
 
-func TestgetOrgs(T *testing.T) {
+func TestGetOrgs(T *testing.T) {
 	return
 }
