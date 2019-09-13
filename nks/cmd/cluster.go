@@ -257,7 +257,7 @@ func setClusterKubeConfig(clusterId int) error {
 	check(err)
 
 	home, err := homedir.Dir()
-	fmt.Printf("Setting kubeconfig to cluster %d", clusterId)
+	//fmt.Printf("Setting kubeconfig to cluster %d", clusterId)
 	b := []byte(kubeConfig)
 
 	err = ioutil.WriteFile(fmt.Sprintf("%s/.kube/config", home), b, 0644)

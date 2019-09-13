@@ -24,7 +24,7 @@ func newClient() *nks.APIClient {
 	return client
 }
 
-func httpRequest(method string, url string, b string) ([]byte, error) {
+func httpRequest(method string, url string) ([]byte, error) {
 	var httpClient = http.Client{}
 
 	req, _ := http.NewRequest(method, url, nil)
