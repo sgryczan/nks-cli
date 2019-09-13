@@ -21,6 +21,9 @@ run:
 deps:
 	$(GOGET) github.com/NetApp/nks-sdk-go/nks
 	$(GOGET) github.com/spf13/cobra
+	$(GOGET) github.com/mitchellh/go-homedir
+	$(GOGET) github.com/mitchellh/mapstructure
+	$(GOGET) github.com/spf13/viper
 
 # Cross compilation
 build-linux:
