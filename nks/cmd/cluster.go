@@ -5,15 +5,18 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"reflect"
 	"text/tabwriter"
+	"io/ioutil"
 
+	homedir "github.com/mitchellh/go-homedir"
 	nks "github.com/NetApp/nks-sdk-go/nks"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var getClusterId string
+var getClusterId int
 var getClusterAllf bool
 
 var createClusterNamef string
@@ -180,26 +183,23 @@ var listClustersCmd = &cobra.Command{
 var getClustersCmd = &cobra.Command{
 	Use:     "get",
 	Aliases: []string{"cls", "clusters"},
-	Short:   "list clusters",
+	Short:   "get cluster details",
 	Run: func(cmd *cobra.Command, args []string) {
-		if getClusterAllf {
-			getAllClusters()
-		} else if getClusterId != "" {
-			i, err := strconv.Atoi(getClusterId)
-			check(err)
-			cl, err := getClusterByID(i)
-			check(err)
-			cls := []nks.Cluster{
-				*cl,
-			}
-			printClusters(cls)
-		} else {
-			cs, err := getClusters()
-			if err != nil {
-				fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
-				cs = &[]nks.Cluster{}
-			}
-			printClusters(*cs)
+		i := CurrentConfig.ClusterId
+		if getClusterId != 0 {
+			i = getClusterId
+		}
+
+		cl, err := getClusterByID(i)
+		check(err)
+			
+		s := reflect.ValueOf(cl).Elem()
+		typeOfT := s.Type()
+
+		for i := 0; i < s.NumField(); i++ {
+			f := s.Field(i)
+			fmt.Printf("%s %s = %v\n",
+				typeOfT.Field(i).Name, f.Type(), f.Interface())
 		}
 	},
 }
@@ -249,6 +249,19 @@ func getClusterByID(clusterId int) (*nks.Cluster, error) {
 	check(err)
 
 	return cl, err
+}
+
+func setClusterKubeConfig(clusterId int) error {
+	c := newClient()
+	kubeConfig, err := c.GetKubeConfig(CurrentConfig.OrgID, CurrentConfig.ClusterId)
+	check(err)
+
+	home, err := homedir.Dir()
+	fmt.Printf("Setting kubeconfig to cluster %d", clusterId)
+	b := []byte(kubeConfig)
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/.kube/config", home), b, 0644)
+	return err
 }
 
 func deleteClusterByID(clusterId int) error {
@@ -306,8 +319,8 @@ func init() {
 	clusterCmd.AddCommand(listClustersCmd)
 
 
-	listClustersCmd.Flags().StringVarP(&getClusterId, "id", "", "", "ID of cluster")
-	getClustersCmd.Flags().StringVarP(&getClusterId, "id", "", "", "ID of cluster")
+	listClustersCmd.Flags().IntVarP(&getClusterId, "id", "", 0, "ID of cluster")
+	getClustersCmd.Flags().IntVarP(&getClusterId, "id", "", 0, "ID of cluster")
 	getClustersCmd.Flags().BoolVarP(&getClusterAllf, "all", "a", false, "Get everything (incl. Service clusters)")
 
 	createClusterCmd.Flags().StringVarP(&createClusterNamef, "name", "n", "", "ID of cluster")

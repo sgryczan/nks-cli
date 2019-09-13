@@ -6,9 +6,8 @@ GOGET=$(GOCMD) get
 BINARY_NAME=nks
 BINARY_UNIX=$(BINARY_NAME)_unix
 
-all: test build
+all: deps test build
 build: 
-	deps
 	$(GOBUILD) -o $(BINARY_NAME) -v
 test: 
 	$(GOTEST) -v ./...

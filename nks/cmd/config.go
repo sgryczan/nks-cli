@@ -113,6 +113,7 @@ func setCluster(clusterId int) {
 	viper.Set("cluster_id", clusterId)
 	syncConfig()
 	CurrentConfig.ClusterId = clusterId
+	setClusterKubeConfig(clusterId)
 }
 
 var configSetURLCmd = &cobra.Command{
