@@ -66,6 +66,8 @@ func initConfig() {
 
 	viper.SetEnvPrefix("nks") // NKS_<whatever>
 	viper.AutomaticEnv() // read in environment variables that match
+	err := viper.Unmarshal(CurrentConfig)
+	check(err)
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
