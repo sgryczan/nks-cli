@@ -8,6 +8,7 @@ BINARY_UNIX=$(BINARY_NAME)_unix
 
 all: test build
 build: 
+	deps
 	$(GOBUILD) -o $(BINARY_NAME) -v
 test: 
 	$(GOTEST) -v ./...

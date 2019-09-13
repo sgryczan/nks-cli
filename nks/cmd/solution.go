@@ -12,7 +12,7 @@ import (
 
 var solutionsCmd = &cobra.Command{
 	Use:   "solutions",
-	Aliases: []string{"sol", "solu", "chart", "charts"},
+	Aliases: []string{"sol", "solu", "solution", "so", "chart", "charts"},
 	Short: "mnanage solutions",
 	//Run: func(cmd *cobra.Command, args []string) {
 	//},

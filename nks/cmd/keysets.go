@@ -3,9 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strconv"
-
-	"github.com/spf13/viper"
 
 	"text/tabwriter"
 
@@ -69,9 +66,8 @@ func printKeysets(ks []nks.Keyset) {
 
 func getKeySets() (*[]nks.Keyset, error) {
 	c := newClient()
-	org_id, err := strconv.Atoi(viper.GetString("org_id"))
-	check(err)
-	ks, err := c.GetKeysets(org_id)
+	
+	ks, err := c.GetKeysets(CurrentConfig.OrgID)
 
 	return &ks, err
 }

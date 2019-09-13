@@ -16,6 +16,7 @@ import (
 var flagClusterId int
 var flagSolutionId int
 var flagForce bool
+var flagGenerateCompletions bool
 
 
 func newClient() *nks.APIClient {

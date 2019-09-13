@@ -43,11 +43,16 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().BoolVarP(&flagGenerateCompletions, "generatecompletion", "b", false, "Generate bash completion scripts")
+	rootCmd.PersistentFlags().MarkHidden("generatecompletion")
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	if flagGenerateCompletions {
+		rootCmd.GenBashCompletion(os.Stdout);
+		os.Exit(0)
+	}
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -65,6 +70,9 @@ func initConfig() {
 	}
 
 	viper.SetEnvPrefix("nks") // NKS_<whatever>
+	for _, key := range configFields {
+		viper.BindEnv(key)
+	}
 	viper.AutomaticEnv() // read in environment variables that match
 	err := viper.Unmarshal(CurrentConfig)
 	check(err)
@@ -77,5 +85,22 @@ func initConfig() {
 	} else {
 		fmt.Println("Could not find config file!")
 		bootstrapConfigFile()
+	}
+
+	if CurrentConfig.OrgID == 0 {
+		configureDefaultOrganization()
+	}
+
+	if CurrentConfig.SSHKeySetId == 0 {
+		fmt.Println("Default SSH keys not set. Configuring...")
+		setDefaultSSHKey()
+	}
+
+	if CurrentConfig.Provider == "" {
+		configSet("provider", "gce")
+	}
+
+	if CurrentConfig.ProviderKeySetID == 0 {
+		setDefaultProviderKey(CurrentConfig.Provider)
 	}
 }

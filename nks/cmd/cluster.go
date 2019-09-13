@@ -167,6 +167,12 @@ var listClustersCmd = &cobra.Command{
 			}
 			
 		}
+		if len(*c) > 0 {
+			if CurrentConfig.ClusterId == 0 {
+				setCluster((*c)[0].ID)	
+			}
+		}
+		
 		printClusters(*c)
 	},
 }
@@ -256,6 +262,10 @@ func deleteClusterByID(clusterId int) error {
 		err = c.DeleteCluster(o, clusterId)
 	}
 	check(err)
+	
+	if clusterId == CurrentConfig.ClusterId {
+		setCluster(0)	
+	}
 
 	cl, err := getAllClusters()
 	check(err)

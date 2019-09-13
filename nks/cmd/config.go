@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/spf13/viper"
 	homedir "github.com/mitchellh/go-homedir"
 	nks "github.com/NetApp/nks-sdk-go/nks"
@@ -58,8 +60,15 @@ var listConfigCmd = &cobra.Command{
 	Short:   "list current configuration",
 	Long:    "",
 	Run: func(cmd *cobra.Command, args []string) {
-		for k, v := range viper.AllSettings() {
-			fmt.Printf("%s: %v\n", k, v)
+		fmt.Printf("Current configuration:\n\n")
+		t := CurrentConfig
+		s := reflect.ValueOf(t).Elem()
+		typeOfT := s.Type()
+
+		for i := 0; i < s.NumField(); i++ {
+			f := s.Field(i)
+			fmt.Printf("%s %s = %v\n",
+				typeOfT.Field(i).Name, f.Type(), f.Interface())
 		}
 	},
 }
@@ -81,8 +90,13 @@ var configSetTokenCmd = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		viper.Set("api_token", args[0])
-		viper.WriteConfig()
+		syncConfig()
 	},
+}
+
+func configSet(key string, value string) {
+	viper.Set(key, value)
+	syncConfig()
 }
 
 var configSetClusterCmd = &cobra.Command{
@@ -97,7 +111,7 @@ var configSetClusterCmd = &cobra.Command{
 
 func setCluster(clusterId int) {
 	viper.Set("cluster_id", clusterId)
-	viper.WriteConfig()
+	syncConfig()
 	CurrentConfig.ClusterId = clusterId
 }
 
@@ -107,10 +121,15 @@ var configSetURLCmd = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		viper.Set("api_url", args[0])
-		viper.WriteConfig()
+		syncConfig()
 	},
 }
 
+func syncConfig() {
+	viper.WriteConfig()
+	err := viper.Unmarshal(CurrentConfig)
+	check(err)
+}
 
 func newConfig() error {
 	home, _ := homedir.Dir()
@@ -126,10 +145,6 @@ func newConfig() error {
 
 	err := viper.Unmarshal(CurrentConfig)
 	check(err)
-	for k, v := range viper.AllSettings() {
-		fmt.Printf("%s: %v\n", k, v)
-	}
-	fmt.Printf("Config: %+v", CurrentConfig)
 
 	return nil
 }
@@ -151,6 +166,19 @@ func createConfigFile(filename string, token string) error {
 		}
 		viper.Set(s, v)
 	}
+	configureDefaultOrganization()
+	viper.WriteConfigAs(filename)
+
+	fmt.Println("Setting Provider Key...")
+	setDefaultProviderKey(viper.GetString("provider"))
+
+	fmt.Println("Setting SSH Key...")
+	setSSHKey(viper.GetString("provider"))
+
+	return nil
+}
+
+func configureDefaultOrganization() {
 	o, err := getDefaultOrg()
 	if err != nil {
 		fmt.Println("Could not get default organization")
@@ -158,20 +186,11 @@ func createConfigFile(filename string, token string) error {
 		fmt.Println("Setting default org..")
 		setConfigDefaultOrg(o)
 	}
-	viper.WriteConfigAs(filename)
-
-	fmt.Println("Setting Provider Key...")
-	setDefaultProviderKey(viper.GetString("provider"))
-
-	fmt.Println("Setting SSH Key...")
-	setDefaultSSHKey(viper.GetString("provider"))
-
-	return nil
 }
 
 func setConfigDefaultOrg(o nks.Organization) {
 	viper.Set("org_id", o.ID)
-	viper.WriteConfig()
+	syncConfig()
 }
 
 func setDefaultProviderKey(p string) {
@@ -190,10 +209,29 @@ func setDefaultProviderKey(p string) {
 	}
 
 	viper.Set("provider_keyset_id", v[0].ID)
-	viper.WriteConfig()
+	syncConfig()
 }
 
-func setDefaultSSHKey(s string) {
+func setDefaultSSHKey() {
+	kss, err := getKeySets()
+	check(err)
+	v := []nks.Keyset{}
+
+	for _, ks := range *kss {
+		if ks.Category == "user_ssh" {
+			v = append(v, ks)
+		}
+	}
+
+	if len(v) == 0 {
+		fmt.Println("Error configuring default SSH keyset. No user ssh keysets found!")
+	}
+
+	viper.Set("ssh_keyset_id", v[0].ID)
+	syncConfig()
+}
+
+func setSSHKey(s string) {
 	kss, err := getKeySets()
 	check(err)
 	v := []nks.Keyset{}
@@ -209,7 +247,7 @@ func setDefaultSSHKey(s string) {
 	}
 
 	viper.Set("ssh_keyset_id", v[0].ID)
-	viper.WriteConfig()
+	syncConfig()
 }
 
 func bootstrapConfigFile() {

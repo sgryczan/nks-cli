@@ -11,7 +11,7 @@ var versionCmd = &cobra.Command{
 	Short: "display CLI version",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Version - v0.0.1")
+		fmt.Println("NKS CLI Version - v0.0.1 (alpha)")
 	},
 }
 
