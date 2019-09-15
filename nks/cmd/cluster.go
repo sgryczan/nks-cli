@@ -22,7 +22,6 @@ var getClusterAllf bool
 var createClusterNamef string
 var createClusterNumWorkers int
 var createClusterWorkerSize string
-var createClusterNumMasters int
 var createClusterMasterSize string
 var deleteClusterIDf int
 
@@ -112,15 +111,12 @@ var createClusterCmd = &cobra.Command{
 		template.Name = createClusterNamef
 		//fmt.Printf("Template:\n%+v", template)
 
-		if createClusterNumMasters != 0 {
-			template.MasterCount = createClusterNumMasters
-		}
-
+		
 		if createClusterMasterSize != "" {
 			template.MasterSize = createClusterMasterSize
 		}
 
-		if createClusterNumWorkers != 0 {
+		if createClusterNumWorkers != 2 {
 			template.WorkerCount = createClusterNumWorkers
 		}
 
@@ -128,6 +124,7 @@ var createClusterCmd = &cobra.Command{
 			template.WorkerSize = createClusterWorkerSize
 		}
 
+		fmt.Printf("Template:\n \t%+v", template)
 		newCluster, err := createCluster(template)
 		check(err)
 		printClusters([]nks.Cluster{newCluster})
@@ -251,17 +248,24 @@ func getClusterByID(clusterId int) (*nks.Cluster, error) {
 	return cl, err
 }
 
-func setClusterKubeConfig(clusterId int) error {
+func setClusterKubeConfig(clusterId int)  {
 	c := newClient()
 	kubeConfig, err := c.GetKubeConfig(CurrentConfig.OrgID, CurrentConfig.ClusterId)
-	check(err)
-
+	if err != nil {
+		fmt.Printf("There was an error retrieving config for cluster %d: \n\t%v\n", CurrentConfig.ClusterId, err)
+	}
 	home, err := homedir.Dir()
 	//fmt.Printf("Setting kubeconfig to cluster %d", clusterId)
 	b := []byte(kubeConfig)
+	if err != nil {
+		fmt.Printf("There was an error finding your home directory: %v", err)
+	}
+
 
 	err = ioutil.WriteFile(fmt.Sprintf("%s/.kube/config", home), b, 0644)
-	return err
+	if err != nil {
+		fmt.Printf("There was an error writing the kubeconfig: %v", err)
+	}
 }
 
 func deleteClusterByID(clusterId int) error {
@@ -325,9 +329,9 @@ func init() {
 
 	createClusterCmd.Flags().StringVarP(&createClusterNamef, "name", "n", "", "ID of cluster")
 	createClusterCmd.Flags().StringVarP(&createClusterMasterSize, "master-size", "", "", "Instance size of master nodes")
-	createClusterCmd.Flags().IntVarP(&createClusterNumMasters, "num-masters", "m", 0, "Number of master nodes (default : 1)")
+
 	createClusterCmd.Flags().StringVarP(&createClusterWorkerSize, "worker-size", "", "", "Instance size of worker nodes")
-	createClusterCmd.Flags().IntVarP(&createClusterNumWorkers, "num-workers", "w", 0, "Number of worker nodes (default: 2)")
+	createClusterCmd.Flags().IntVarP(&createClusterNumWorkers, "num-workers", "w", 2, "Number of worker nodes (default: 2)")
 	e := createClusterCmd.MarkFlagRequired("name")
 	check(e)
 
