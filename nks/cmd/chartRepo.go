@@ -6,75 +6,14 @@ import (
 	"os"
 	"strings"
 	"encoding/json"
+	models "gitlab.com/sgryczan/nks-cli/nks/models"
 
 	"github.com/spf13/cobra"
 )
 
 var flagCreateRepositorySourceType string
 
-type createRepoInput []checkRepositoryInput
 
-type createRepoResponseS []createRepoResponse
-
-type createRepoResponse struct {
-	ID          int         `json:"pk"`
-	Name        string    	`json:"name"`
-	Source		string		`json:"source"`
-	SourceDisplay	string 	`json:"Github"`
-	OrganizationId		int 	`json:"org"`
-	Path	string			`json:"path"`
-	URL		string			`json:"url"`
-	IsSystem	bool		`json:"is_system"`
-	IsPrivate bool			`json:"is_private"`
-	KeysetId	*int		`json:"keyset"`
-	ChartIndex	[]chartIndex	`json:"chart_index"`
-	State      string		`json:"state"`
-	Owner		int		`json:"owner"`
-	IsAccessible	bool	`json:"is_accessible"`
-	Synced		*string		`json:"synced"`
-	Created 	string		`json:"created"`
-	Updated 	string		`json:"updated"`
-}
-
-type chartIndex struct {
-	Name        string    	`json:"name"`
-	Sha			  string		`json:"sha"`
-	Chart		map[string]string `json:"chart"`
-	Values		string			`json:"values"`
-	Path		string		`json:"path"`
-	Spec		map[string]string `json:"spec"`
-}
-
-type checkRepositoryInput struct {
-	Name        string    			`json:"name"`
-	Source		string				`json:"source"`
-	Path		string				`json:"path"`
-	URL			string				`json:"url"`
-	KeysetId	*int				`json:"keyset"`
-	IsPrivate 	bool				`json:"is_private"`
-	Config 		map[string]*string	 `json:"config"`
-}
-
-type checkRepositoryResponse struct {
-	Accessible 		bool    	`json:"accessible"`
-	Directories		[]string 	`json:"directories"`
-	IsMultiChart	bool		`json:"is_multi_chart"`
-	Error			*string		`json:"error"`
-	Contents		[]checkRepositoryContents	`json:"contents"`
-}
-
-type checkRepositoryContents struct {
-	Name          string    	`json:"name"`
-	URL			  string		`json:"url"`
-	HtmlUrl		  string		`json:"html_url"`
-	DownloadURL	  string		`json:"download_url"`
-	Sha			  string		`json:"sha"`
-	Links		  map[string]string	`json:"_links"`
-	GitURL		string			`json:"git_url"`
-	Path		string			`json:"path"`
-	Type		string			`json:"type"`
-	Size		int				`json:"size"`
-}
 
 var repositoryCmd = &cobra.Command{
 	Use:   "repositories",
@@ -97,17 +36,39 @@ var listRepositoryCmd = &cobra.Command{
 	},
 }
 
-func listRepositories() []createRepoResponse {
+func listRepositories() []models.Repository {
 	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", CurrentConfig.OrgID)
 	res, err := httpRequest("GET", url)
 	check(err)
 
-	data := []createRepoResponse{}
+	data := []models.Repository{}
 
 	err = json.Unmarshal(res, &data)
 	check(err)
 
 	return data
+}
+
+func GetRepositoryByName(name string) (models.Repository, error) {
+	var err error
+	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", CurrentConfig.OrgID)
+	res, err := httpRequest("GET", url)
+	check(err)
+
+	repositories := []models.Repository{}
+
+	err = json.Unmarshal(res, &repositories)
+	check(err)
+
+	for _, repo := range repositories {
+		if repo.Name == name {
+			return repo, err
+		}
+	}
+
+
+	r := models.Repository{}
+	return r, err
 }
 
 var createRepositoryCmd = &cobra.Command{
@@ -119,7 +80,7 @@ var createRepositoryCmd = &cobra.Command{
 		if strings.HasPrefix(flagRepositoryURL, "github.com") {
 			flagRepositoryURL = fmt.Sprintf("https://%s", flagRepositoryURL)
 		}
-		i := checkRepositoryInput{
+		i := models.CheckRepositoryInput{
 			Name: flagRepositoryName,
 			URL: flagRepositoryURL,
 			Source: flagCreateRepositorySourceType,
@@ -128,7 +89,7 @@ var createRepositoryCmd = &cobra.Command{
 		_, err := checkRepository(i)
 		check(err)
 
-		input := createRepoInput{i}
+		input := models.CreateRepoInput{i}
 
 		n, err := createRepository(input)
 		check(err)
@@ -144,7 +105,7 @@ var flagRepositoryURL	string
 var flagRepositoryID	int
 
 
-func checkRepository(i checkRepositoryInput) (*checkRepositoryResponse, error) {
+func checkRepository(i models.CheckRepositoryInput) (*models.CheckRepositoryResponse, error) {
 	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos/check", CurrentConfig.OrgID)
 	b, err := json.Marshal(i)
 	check(err)
@@ -154,7 +115,7 @@ func checkRepository(i checkRepositoryInput) (*checkRepositoryResponse, error) {
 	check(err)
 	//fmt.Printf("response1: %s\n\n", string(res))
 
-	data := checkRepositoryResponse{}
+	data := models.CheckRepositoryResponse{}
 
 	err = json.Unmarshal(res, &data)
 	check(err)
@@ -162,7 +123,7 @@ func checkRepository(i checkRepositoryInput) (*checkRepositoryResponse, error) {
 	return &data, err
 }
 
-func createRepository(i createRepoInput) (*createRepoResponseS, error) {
+func createRepository(i models.CreateRepoInput) (*models.RepositoryS, error) {
 	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", CurrentConfig.OrgID)
 	b, err := json.Marshal(i)
 	check(err)
@@ -172,7 +133,7 @@ func createRepository(i createRepoInput) (*createRepoResponseS, error) {
 	check(err)
 	//fmt.Printf("response2: %s\n\n", string(res))
 
-	data := createRepoResponseS{}
+	data := models.RepositoryS{}
 
 	err = json.Unmarshal(res, &data)
 	check(err)
@@ -200,7 +161,7 @@ func deleteRepository(repoId int) (error) {
 	return err
 }
 
-func printRepositories(rs []createRepoResponse) {
+func printRepositories(rs []models.Repository) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
 	fmt.Fprintf(w, "NAME\tID\tSOURCE\tURL\t# CHARTS\t\n")
 	for _, c := range rs {

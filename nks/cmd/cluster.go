@@ -93,7 +93,7 @@ var gceDefaults = map[string]interface{}{
 }
 
 var clusterCmd = &cobra.Command{
-	Use:   "cluster",
+	Use:   "clusters",
 	Aliases: []string{"cl", "clus", "clu", "clusters"},
 	Short: "manage cluster resources",
 	Long:  ``,

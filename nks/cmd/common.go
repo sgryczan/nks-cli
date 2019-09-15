@@ -15,6 +15,8 @@ import (
 
 var flagClusterId int
 var flagSolutionId int
+var flagSolutionName string
+var flagSolutionRepoName string
 var flagForce bool
 var flagGenerateCompletions bool
 

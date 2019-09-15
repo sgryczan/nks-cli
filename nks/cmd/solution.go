@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"text/tabwriter"
+	"encoding/json"
 
 	"github.com/spf13/cobra"
 	models "gitlab.com/sgryczan/nks-cli/nks/models"
@@ -19,8 +20,8 @@ var solutionsCmd = &cobra.Command{
 }
 
 var listSolutionsCmd = &cobra.Command{
-	Use:   "list",
-	Aliases: []string{"l", "li", "lis"},
+	Use:   "list-installed",
+	Aliases: []string{"li"},
 	Short: "list solutions",
 	Run: func(cmd *cobra.Command, args []string) {
 		clusterId := CurrentConfig.ClusterId
@@ -45,9 +46,21 @@ var listSolutionsCmd = &cobra.Command{
 	},
 }
 
-var createSolutionsCmd = &cobra.Command{
-	Use:   "deploy",
-	Aliases: []string{"new", "dep"},
+
+var listSolutionTemplatesCmd = &cobra.Command{
+	Use:   "list-templates",
+	Aliases: []string{"lt"},
+	Short: "list solution templates",
+	Run: func(cmd *cobra.Command, args []string) {
+		s := models.ListSolutionTemplates()
+		
+		models.PrintSolutionTemplates(&s)
+	},
+}
+
+var deploySolutionFromTemplateCmd = &cobra.Command{
+	Use:   "deploy-template",
+	Aliases: []string{"dt"},
 	Short: "deploy solution (jenkins)",
 	Run: func(cmd *cobra.Command, args []string) {
 		name := "jenkins"
@@ -58,7 +71,38 @@ var createSolutionsCmd = &cobra.Command{
 			cid = flagClusterId
 		}	
 
-		s, err := createSolution(name, CurrentConfig.OrgID, cid)
+		s, err := createSolutionFromTemplate(name, CurrentConfig.OrgID, cid)
+		
+		if err != nil {
+			fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
+		}
+		ss := []nks.Solution{*s,}
+		printSolutions(ss)
+	},
+}
+
+
+var deploySolutionFromRepositoryCmd = &cobra.Command{
+	Use:   "deploy",
+	Aliases: []string{"new", "dep"},
+	Short: "deploy an imported chart",
+	Run: func(cmd *cobra.Command, args []string) {
+		
+		repoName := "demo"
+
+		fmt.Printf("creating solution %s...\n", repoName)
+		cid := CurrentConfig.ClusterId
+
+		if flagClusterId != 0 {
+			cid = flagClusterId
+		}	
+
+		repo, err := GetRepositoryByName(repoName)
+		if err != nil {
+			fmt.Printf("We had an error trying to retrieve Repository: %s\n", repoName)
+		}
+
+		s, err := createSolutionFromRepository(repo, repoName, CurrentConfig.OrgID, cid)
 		
 		if err != nil {
 			fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
@@ -103,6 +147,7 @@ func listSolutions(orgId, clusterId int) (*[]nks.Solution, error) {
 	return &s, err
 }
 
+
 func printSolutions(s []nks.Solution) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
 	fmt.Fprintf(w, "NAME\tID\tSOLUTION\tSTATE\t\n")
@@ -112,7 +157,7 @@ func printSolutions(s []nks.Solution) {
 	w.Flush()
 }
 
-func createSolution(s string, orgId, clusterId int) (*nks.Solution, error) {
+func createSolutionFromTemplate(s string, orgId, clusterId int) (*nks.Solution, error) {
 
 	template, err := models.GetTemplateAsJson(s)
 	check(err)
@@ -120,6 +165,21 @@ func createSolution(s string, orgId, clusterId int) (*nks.Solution, error) {
 	c := newClient()
 	//fmt.Printf("Solution body: %s\n", template)
 	sol, err := c.AddSolutionFromJSON(orgId, clusterId, template)
+	return sol, err
+}
+
+
+func createSolutionFromRepository(r models.Repository, releaseName string, orgId, clusterId int) (*nks.Solution, error) {
+
+	template := models.RepositoryToTemplate(r, releaseName)
+	b, err := json.Marshal(template)
+	if err != nil {
+		fmt.Printf("error while attempting to convert template: \n\t:%v", err)
+	}
+
+	c := newClient()
+	fmt.Printf("Solution body: %s\n", string(b))
+	sol, err := c.AddSolutionFromJSON(orgId, clusterId, string(b))
 	return sol, err
 }
 
@@ -133,10 +193,15 @@ func deleteSolution(orgId, clusterId, solutionId int) (error) {
 func init() {
 	rootCmd.AddCommand(solutionsCmd)
 	solutionsCmd.AddCommand(listSolutionsCmd)
-	solutionsCmd.AddCommand(createSolutionsCmd)
+	solutionsCmd.AddCommand(listSolutionTemplatesCmd)
+	solutionsCmd.AddCommand(deploySolutionFromTemplateCmd)
+	solutionsCmd.AddCommand(deploySolutionFromRepositoryCmd)
 	solutionsCmd.AddCommand(deleteSolutionsCmd)
 
-	createSolutionsCmd.Flags().IntVarP(&flagClusterId, "cluster-id", "c", CurrentConfig.ClusterId, "ID of target cluster")
+	deploySolutionFromRepositoryCmd.Flags().StringVarP(&flagSolutionRepoName, "name", "n", "demo", "Name of target repository")
+	deploySolutionFromTemplateCmd.Flags().IntVarP(&flagClusterId, "cluster-id", "c", CurrentConfig.ClusterId, "ID of target cluster")
+	deploySolutionFromTemplateCmd.Flags().StringVarP(&flagSolutionName, "name", "n", "jenkins", "Name of solution template")
+
 	listSolutionsCmd.Flags().IntVarP(&flagClusterId, "cluster-id", "c", CurrentConfig.ClusterId, "ID of target cluster")
 
 	deleteSolutionsCmd.Flags().IntVarP(&flagClusterId, "cluster-id", "c", CurrentConfig.ClusterId, "ID of target cluster")
