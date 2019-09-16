@@ -109,8 +109,9 @@ var createClusterCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		template := generateClusterTemplate()
 		template.Name = createClusterNamef
-		//fmt.Printf("Template:\n%+v", template)
-
+		if flagDebug {
+			fmt.Printf("Template:\n%+v", template)
+		}
 		
 		if createClusterMasterSize != "" {
 			template.MasterSize = createClusterMasterSize
@@ -124,7 +125,10 @@ var createClusterCmd = &cobra.Command{
 			template.WorkerSize = createClusterWorkerSize
 		}
 
-		fmt.Printf("Template:\n \t%+v", template)
+		if flagDebug {
+			fmt.Printf("Template:\n \t%+v", template)
+		} 
+
 		newCluster, err := createCluster(template)
 		check(err)
 		printClusters([]nks.Cluster{newCluster})
@@ -294,9 +298,14 @@ func createCluster(cl createClusterInputGCE) (nks.Cluster, error) {
 	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/clusters", CurrentConfig.OrgID)
 	b, err := json.Marshal(cl)
 	check(err)
-	//fmt.Printf("\nSending request with body:\n%s\n", b)
+	if flagDebug {
+		fmt.Printf("\nSending request with body:\n%s\n", b)
+	}
+
 	res, err := httpRequestPost("POST", url, b)
-	//fmt.Printf("Got response: \n%s", string(res))
+	if flagDebug {
+		fmt.Printf("Got response: \n%s", string(res))
+	}
 	check(err)
 
 	data := nks.Cluster{}

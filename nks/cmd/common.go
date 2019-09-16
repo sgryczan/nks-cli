@@ -19,6 +19,7 @@ var flagSolutionName string
 var flagSolutionRepoName string
 var flagForce bool
 var flagGenerateCompletions bool
+var flagDebug bool
 
 
 func newClient() *nks.APIClient {

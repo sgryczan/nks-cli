@@ -45,6 +45,9 @@ func init() {
 	// when this action is called directly.
 	rootCmd.PersistentFlags().BoolVarP(&flagGenerateCompletions, "generatecompletion", "b", false, "Generate bash completion scripts")
 	rootCmd.PersistentFlags().MarkHidden("generatecompletion")
+
+	rootCmd.PersistentFlags().BoolVarP(&flagDebug, "debug", "", false, "Debug logging")
+	rootCmd.PersistentFlags().MarkHidden("debug")
 }
 
 // initConfig reads in config file and ENV variables if set.

@@ -90,7 +90,10 @@ var deploySolutionFromRepositoryCmd = &cobra.Command{
 		
 		repoName := "demo"
 
-		fmt.Printf("creating solution %s...\n", repoName)
+		if flagDebug {
+			fmt.Printf("creating solution %s...\n", repoName)
+		}
+
 		cid := CurrentConfig.ClusterId
 
 		if flagClusterId != 0 {
