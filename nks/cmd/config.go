@@ -116,6 +116,12 @@ func setCluster(clusterId int) {
 	setClusterKubeConfig(clusterId)
 }
 
+func setClusterID(clusterId int) {
+	viper.Set("cluster_id", clusterId)
+	syncConfig()
+	CurrentConfig.ClusterId = clusterId
+}
+
 var configSetURLCmd = &cobra.Command{
 	Use:   "url",
 	Short: "set api url",

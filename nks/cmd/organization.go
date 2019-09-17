@@ -30,8 +30,8 @@ func printOrgs(o *[]nks.Organization) {
 }
 
 func GetOrgs() (*[]nks.Organization, error) {
-	c := newClient()
-	data, err := c.GetOrganizations()
+
+	data, err := SDKClient.GetOrganizations()
 	check(err)
 
 	return &data, err
@@ -83,8 +83,8 @@ func getOrganizations() {
 }
 
 func getOrganizationByID(id int) {
-	c := newClient()
-	o, err := c.GetOrganization(id)
+
+	o, err := SDKClient.GetOrganization(id)
 	check(err)
 
 	orgs := []nks.Organization{

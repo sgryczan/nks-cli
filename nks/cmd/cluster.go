@@ -14,63 +14,22 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	models "gitlab.com/sgryczan/nks-cli/nks/models"
 )
 
 var getClusterId int
-var getClusterAllf bool
+var flagListAllClusters bool
 
-var createClusterNamef string
-var createClusterNumWorkers int
-var createClusterWorkerSize string
-var createClusterMasterSize string
-var deleteClusterIDf int
+var flagClusterName 			string
+var flagProviderName			string
+var createClusterNumWorkers 	int
+var createClusterWorkerSize 	string
+var createClusterMasterSize 	string
+var deleteClusterIDf 			int
 
-type createClusterInputGCE struct {
-	Name     string `json:"name"`
-	Provider string `json:"provider"`
-	//WorkspaceID      int    `json:"workspace"`
-	ProviderKey int `json:"provider_keyset"`
-
-	MasterCount int    `json:"master_count"`
-	MasterSize  string `json:"master_size"`
-	//MasterRootDiskSize int    `json:"master_root_disk_size"`
-	//MasterGPUInstanceSize string `json:"master_gpu_instance_size"`
-	//MasterGPUCoreCount    int    `json:"master_gpu_core_count"`
-
-	WorkerCount int    `json:"worker_count"`
-	WorkerSize  string `json:"worker_size"`
-	//WorkerGPUInstanceSize string `json:"worker_gpu_instance_size"`
-	//WorkerGPUCoreCount    int    `json:"worker_gpu_core_count"`
-	//WorkerRootDiskSize    int    `json:"worker_root_disk_size"`
-
-	KubernetesVersion string `json:"k8s_version"`
-	DashboardEnabled  bool   `json:"k8s_dashboard_enabled"`
-	RbacEnabled       bool   `json:"k8s_rbac_enabled"`
-	//K8sPodCIDR          string `json:"k8s_pod_cidr"`
-	//K8sServiceCIDR      string `json:"k8s_service_cidr"`
-
-	//ProjectID string `json:"project_id"`
-
-	SSHKeySet int `json:"user_ssh_keyset"`
-
-	EtcdType  string         `json:"etcd_type"`
-	Platform  string         `json:"platform"`
-	Channel   string         `json:"channel"`
-	Region    string         `json:"region"`
-	Solutions []nks.Solution `json:"solutions"`
-
-	//Config string `json:"config"`
-
-	//MinNodeCount int `json:"min_node_count"`
-	//MaxNodeCount int `json:"max_node_count"`
-	//Owner        int `json:"owner"`
-	//ProviderSubnetID    string
-	//ProviderSubnetCidr  string
-	//ProviderNetworkID   string
-	//ProviderNetworkCIDR string
-}
 
 var gceDefaults = map[string]interface{}{
+	// Name is implied
 	"Provider":          &CurrentConfig.Provider,
 	"ProviderKey":       &CurrentConfig.ProviderKeySetID,
 	"MasterCount":       1,
@@ -92,6 +51,46 @@ var gceDefaults = map[string]interface{}{
 	//"ProviderNetworkCIDR": "172.23.0.0/16",
 }
 
+var hciDefaults = map[string]interface{}{
+	// Name is implied
+	"Provider":          		"hci",
+	"ProviderKey":       		63207,
+	"Workspace":				22022,
+
+	"MasterCount":       		1,
+	"MasterSize":        		"m",
+	"MasterRootDiskSize": 		50,
+	"MasterGPUInstanceSize":	"",
+	"MasterGPUCoreCount":		nil,
+
+	"WorkerCount":       		2,
+	"WorkerSize":        		"m",
+	"WorkerGPUInstanceSize":	"",
+	"WorkerGPUCoreCount":		nil,
+	"WorkerRootDiskSize":		50,
+
+	"Region":            		"LAB-RTP",
+
+	"KubernetesVersion": 		"v1.14.3",
+	"RbacEnabled":       		true,
+	"DashboardEnabled":  		true,
+	"EtcdType":          		"classic",
+	"Platform":          		"debian",
+	"Channel":           		"stable",
+	"Zone":						"",
+	"Config":					map[string]bool{"enable_experimental_features": true},
+	"SSHKeySet":         		&CurrentConfig.SSHKeySetId,
+	"Solutions":         		[]nks.Solution{nks.Solution{Solution: "helm_tiller"}},
+	"Features":					[]string{},
+	"MinNodeCount":				nil,
+	"MaxNodeCount":				nil,
+	"Owner":					26309, // ???
+	//"ProviderSubnetID":    "__new__",
+	//"ProviderSubnetCidr":  "172.23.1.0/24",
+	//"ProviderNetworkID":   "__new__",
+	//"ProviderNetworkCIDR": "172.23.0.0/16",
+}
+
 var clusterCmd = &cobra.Command{
 	Use:     "clusters",
 	Aliases: []string{"cl", "clus", "clu", "clusters"},
@@ -107,8 +106,12 @@ var createClusterCmd = &cobra.Command{
 	Short: "deploy a new cluster",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		template := generateClusterTemplate()
-		template.Name = createClusterNamef
+		provider := "gce"
+		if flagProviderName != "" {
+			provider = flagProviderName
+		}
+		template := generateClusterTemplate(provider)
+		template.Name = flagClusterName
 		if FlagDebug {
 			fmt.Printf("Template:\n%+v", template)
 		}
@@ -129,7 +132,7 @@ var createClusterCmd = &cobra.Command{
 			fmt.Printf("Template:\n \t%+v", template)
 		}
 
-		fmt.Printf("Creating cluster '%s'...", createClusterNamef)
+		fmt.Printf("Creating cluster '%s'...", flagClusterName)
 		newCluster, err := createCluster(template)
 		check(err)
 		printClusters([]nks.Cluster{newCluster})
@@ -160,7 +163,7 @@ var listClustersCmd = &cobra.Command{
 		c := &([]nks.Cluster{})
 		var err error
 
-		if getClusterAllf {
+		if flagListAllClusters {
 			c, err = getAllClusters()
 			if err != nil {
 				fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
@@ -223,8 +226,7 @@ func printClusters(cs []nks.Cluster) {
 func getClusters() (*[]nks.Cluster, error) {
 	o := CurrentConfig.OrgID
 
-	c := newClient()
-	cls, err := c.GetClusters(o)
+	cls, err := SDKClient.GetClusters(o)
 
 	check(err)
 
@@ -234,8 +236,8 @@ func getClusters() (*[]nks.Cluster, error) {
 func getAllClusters() (*[]nks.Cluster, error) {
 	o, err := strconv.Atoi(viper.GetString("org_id"))
 	check(err)
-	c := newClient()
-	cls, err := c.GetAllClusters(o)
+
+	cls, err := SDKClient.GetAllClusters(o)
 
 	check(err)
 
@@ -245,8 +247,9 @@ func getAllClusters() (*[]nks.Cluster, error) {
 func getClusterByID(clusterId int) (*nks.Cluster, error) {
 	o, err := strconv.Atoi(viper.GetString("org_id"))
 	check(err)
-	c := newClient()
-	cl, err := c.GetCluster(o, clusterId)
+
+
+	cl, err := SDKClient.GetCluster(o, clusterId)
 
 	check(err)
 
@@ -254,8 +257,8 @@ func getClusterByID(clusterId int) (*nks.Cluster, error) {
 }
 
 func setClusterKubeConfig(clusterId int) {
-	c := newClient()
-	kubeConfig, err := c.GetKubeConfig(CurrentConfig.OrgID, CurrentConfig.ClusterId)
+
+	kubeConfig, err := SDKClient.GetKubeConfig(CurrentConfig.OrgID, CurrentConfig.ClusterId)
 	if err != nil {
 		fmt.Printf("There was an error retrieving config for cluster %d: \n\t%v\n", CurrentConfig.ClusterId, err)
 	}
@@ -274,18 +277,18 @@ func setClusterKubeConfig(clusterId int) {
 
 func deleteClusterByID(clusterId int) error {
 	o := CurrentConfig.OrgID
-	c := newClient()
+
 	var err error
 
 	if flagForce {
-		err = c.ForceDeleteCluster(o, clusterId)
+		err = SDKClient.ForceDeleteCluster(o, clusterId)
 	} else {
-		err = c.DeleteCluster(o, clusterId)
+		err = SDKClient.DeleteCluster(o, clusterId)
 	}
 	check(err)
 
 	if clusterId == CurrentConfig.ClusterId {
-		setCluster(0)
+		setClusterID(0)
 	}
 
 	cl, err := getAllClusters()
@@ -294,7 +297,7 @@ func deleteClusterByID(clusterId int) error {
 	return nil
 }
 
-func createCluster(cl createClusterInputGCE) (nks.Cluster, error) {
+func createCluster(cl models.CreateClusterInput) (nks.Cluster, error) {
 	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/clusters", CurrentConfig.OrgID)
 	b, err := json.Marshal(cl)
 	check(err)
@@ -318,9 +321,18 @@ func createCluster(cl createClusterInputGCE) (nks.Cluster, error) {
 	return data, nil
 }
 
-func generateClusterTemplate() createClusterInputGCE {
-	c := createClusterInputGCE{}
-	mapstructure.Decode(gceDefaults, &c)
+func generateClusterTemplate(provider string) models.CreateClusterInput {
+	c := models.CreateClusterInput{}
+
+	switch provider {
+	case "gce":
+		mapstructure.Decode(gceDefaults, &c)
+	case "hci":
+		mapstructure.Decode(hciDefaults, &c)
+	default:
+		fmt.Printf("Provider %s is not supported :(", provider)
+	}
+
 	return c
 }
 
@@ -331,13 +343,14 @@ func init() {
 	clusterCmd.AddCommand(deleteClusterCmd)
 	clusterCmd.AddCommand(listClustersCmd)
 
-	listClustersCmd.Flags().IntVarP(&getClusterId, "id", "", 0, "ID of cluster")
 	getClustersCmd.Flags().IntVarP(&getClusterId, "id", "", 0, "ID of cluster")
-	getClustersCmd.Flags().BoolVarP(&getClusterAllf, "all", "a", false, "Get everything (incl. Service clusters)")
 
-	createClusterCmd.Flags().StringVarP(&createClusterNamef, "name", "n", "", "ID of cluster")
+	listClustersCmd.Flags().IntVarP(&getClusterId, "id", "", 0, "ID of cluster")
+	listClustersCmd.Flags().BoolVarP(&flagListAllClusters, "all", "a", false, "Get everything (incl. Service clusters)")
+
+	createClusterCmd.Flags().StringVarP(&flagClusterName, "name", "n", "", "ID of cluster")
+	createClusterCmd.Flags().StringVarP(&flagProviderName, "provider", "p", "", "Name of provider")
 	createClusterCmd.Flags().StringVarP(&createClusterMasterSize, "master-size", "", "", "Instance size of master nodes")
-
 	createClusterCmd.Flags().StringVarP(&createClusterWorkerSize, "worker-size", "", "", "Instance size of worker nodes")
 	createClusterCmd.Flags().IntVarP(&createClusterNumWorkers, "num-workers", "w", 2, "Number of worker nodes (default: 2)")
 	e := createClusterCmd.MarkFlagRequired("name")

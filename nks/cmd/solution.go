@@ -144,8 +144,7 @@ var deleteSolutionsCmd = &cobra.Command{
 
 func listSolutions(orgId, clusterId int) (*[]nks.Solution, error) {
 
-	c := newClient()
-	s, err := c.GetSolutions(orgId, clusterId)
+	s, err := SDKClient.GetSolutions(orgId, clusterId)
 	check(err)
 
 	return &s, err
@@ -165,9 +164,8 @@ func createSolutionFromTemplate(s string, orgId, clusterId int) (*nks.Solution, 
 	template, err := models.GetTemplateAsJson(s)
 	check(err)
 
-	c := newClient()
 	//fmt.Printf("Solution body: %s\n", template)
-	sol, err := c.AddSolutionFromJSON(orgId, clusterId, template)
+	sol, err := SDKClient.AddSolutionFromJSON(orgId, clusterId, template)
 	return sol, err
 }
 
@@ -179,18 +177,16 @@ func createSolutionFromRepository(r models.Repository, releaseName string, orgId
 		fmt.Printf("error while attempting to convert template: \n\t:%v", err)
 	}
 
-	c := newClient()
 	if FlagDebug {
 		fmt.Printf("Solution body: %s\n", string(b))
 	}
-	sol, err := c.AddSolutionFromJSON(orgId, clusterId, string(b))
+	sol, err := SDKClient.AddSolutionFromJSON(orgId, clusterId, string(b))
 	return sol, err
 }
 
 func deleteSolution(orgId, clusterId, solutionId int) error {
 
-	c := newClient()
-	err := c.DeleteSolution(orgId, clusterId, solutionId)
+	err := SDKClient.DeleteSolution(orgId, clusterId, solutionId)
 	return err
 }
 

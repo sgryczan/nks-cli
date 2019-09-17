@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	homedir "github.com/mitchellh/go-homedir"
+	nks "github.com/NetApp/nks-sdk-go/nks"
 	"github.com/spf13/viper"
 )
 
@@ -33,7 +34,7 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(initConfig, initClient)
 
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
@@ -48,6 +49,10 @@ func init() {
 
 	rootCmd.PersistentFlags().BoolVarP(&FlagDebug, "debug", "", false, "Debug logging")
 	rootCmd.PersistentFlags().MarkHidden("debug")
+}
+
+func initClient() {
+	SDKClient = nks.NewClient(viper.GetString("api_token"), viper.GetString("api_url"))
 }
 
 // initConfig reads in config file and ENV variables if set.

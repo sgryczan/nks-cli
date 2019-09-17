@@ -24,7 +24,7 @@ type Keyset struct {
 	Category   string      `json:"category"`
 	Entity     string      `json:"entity"`
 	Org        string      `json:"org"`
-	Workspaces []Workspace `json:"workspaces"`
+	Workspaces []nks.Workspace `json:"workspaces"`
 	metadata   map[string]string
 	User       int    `json:"user"`
 	Keys       []Key  `json:"keys"`
@@ -65,9 +65,8 @@ func printKeysets(ks []nks.Keyset) {
 }
 
 func getKeySets() (*[]nks.Keyset, error) {
-	c := newClient()
 	
-	ks, err := c.GetKeysets(CurrentConfig.OrgID)
+	ks, err := SDKClient.GetKeysets(CurrentConfig.OrgID)
 
 	return &ks, err
 }
