@@ -65,3 +65,5 @@ Use "nks [command] --help" for more information about a command.
 bash-4.4$
 ```
 
+### Resources
+[NetApp/hci-nks-demo](https://github.com/NetApp/hci-nks-demo/tree/nks-shell/nks) - NKS tutorial with usage examples
