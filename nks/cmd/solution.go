@@ -1,28 +1,28 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"text/tabwriter"
-	"encoding/json"
 
+	nks "github.com/NetApp/nks-sdk-go/nks"
 	"github.com/spf13/cobra"
 	models "gitlab.com/sgryczan/nks-cli/nks/models"
-	nks "github.com/NetApp/nks-sdk-go/nks"
 )
 
 var solutionsCmd = &cobra.Command{
-	Use:   "solutions",
+	Use:     "solutions",
 	Aliases: []string{"sol", "solu", "solution", "so", "chart", "charts"},
-	Short: "mnanage solutions",
+	Short:   "mnanage solutions",
 	//Run: func(cmd *cobra.Command, args []string) {
 	//},
 }
 
 var listSolutionsCmd = &cobra.Command{
-	Use:   "list-installed",
+	Use:     "list-installed",
 	Aliases: []string{"li"},
-	Short: "list solutions",
+	Short:   "list solutions",
 	Run: func(cmd *cobra.Command, args []string) {
 		clusterId := CurrentConfig.ClusterId
 		orgId := CurrentConfig.OrgID
@@ -35,7 +35,6 @@ var listSolutionsCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-
 		ss, err := listSolutions(orgId, clusterId)
 		if err != nil {
 			fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
@@ -46,22 +45,21 @@ var listSolutionsCmd = &cobra.Command{
 	},
 }
 
-
 var listSolutionTemplatesCmd = &cobra.Command{
-	Use:   "list-templates",
+	Use:     "list-templates",
 	Aliases: []string{"lt"},
-	Short: "list solution templates",
+	Short:   "list solution templates",
 	Run: func(cmd *cobra.Command, args []string) {
 		s := models.ListSolutionTemplates()
-		
+
 		models.PrintSolutionTemplates(&s)
 	},
 }
 
 var deploySolutionFromTemplateCmd = &cobra.Command{
-	Use:   "deploy-template",
+	Use:     "deploy-template",
 	Aliases: []string{"dt"},
-	Short: "deploy solution (jenkins)",
+	Short:   "deploy solution (jenkins)",
 	Run: func(cmd *cobra.Command, args []string) {
 		name := "jenkins"
 		fmt.Printf("creating solution %s...\n", name)
@@ -69,28 +67,27 @@ var deploySolutionFromTemplateCmd = &cobra.Command{
 
 		if flagClusterId != 0 {
 			cid = flagClusterId
-		}	
+		}
 
 		s, err := createSolutionFromTemplate(name, CurrentConfig.OrgID, cid)
-		
+
 		if err != nil {
 			fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
 		}
-		ss := []nks.Solution{*s,}
+		ss := []nks.Solution{*s}
 		printSolutions(ss)
 	},
 }
 
-
 var deploySolutionFromRepositoryCmd = &cobra.Command{
-	Use:   "deploy",
+	Use:     "deploy",
 	Aliases: []string{"new", "dep"},
-	Short: "deploy an imported chart",
+	Short:   "deploy an imported chart",
 	Run: func(cmd *cobra.Command, args []string) {
-		
-		repoName := "demo"
 
-		if flagDebug {
+		repoName := flagSolutionRepoName
+
+		if FlagDebug {
 			fmt.Printf("creating solution %s...\n", repoName)
 		}
 
@@ -98,27 +95,31 @@ var deploySolutionFromRepositoryCmd = &cobra.Command{
 
 		if flagClusterId != 0 {
 			cid = flagClusterId
-		}	
-
-		repo, err := GetRepositoryByName(repoName)
-		if err != nil {
-			fmt.Printf("We had an error trying to retrieve Repository: %s\n", repoName)
 		}
 
+		repo, err := GetRepositoryByName(repoName, FlagDebug)
+		if err != nil {
+			fmt.Printf("We had an error trying to retrieve Repository: %s\n", repoName)
+			os.Exit(1)
+		}
+
+		if FlagDebug {
+			fmt.Printf("Converting Repositiory:\n %+v\n", repo)
+		}
 		s, err := createSolutionFromRepository(repo, repoName, CurrentConfig.OrgID, cid)
-		
+
 		if err != nil {
 			fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
 		}
-		ss := []nks.Solution{*s,}
+		ss := []nks.Solution{*s}
 		printSolutions(ss)
 	},
 }
 
 var deleteSolutionsCmd = &cobra.Command{
-	Use:   "delete",
+	Use:     "delete",
 	Aliases: []string{"rm", "del"},
-	Short: "delete solution",
+	Short:   "delete solution",
 	Run: func(cmd *cobra.Command, args []string) {
 		clusterId := CurrentConfig.ClusterId
 		orgId := CurrentConfig.OrgID
@@ -150,7 +151,6 @@ func listSolutions(orgId, clusterId int) (*[]nks.Solution, error) {
 	return &s, err
 }
 
-
 func printSolutions(s []nks.Solution) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
 	fmt.Fprintf(w, "NAME\tID\tSOLUTION\tSTATE\t\n")
@@ -171,7 +171,6 @@ func createSolutionFromTemplate(s string, orgId, clusterId int) (*nks.Solution, 
 	return sol, err
 }
 
-
 func createSolutionFromRepository(r models.Repository, releaseName string, orgId, clusterId int) (*nks.Solution, error) {
 
 	template := models.RepositoryToTemplate(r, releaseName)
@@ -181,12 +180,14 @@ func createSolutionFromRepository(r models.Repository, releaseName string, orgId
 	}
 
 	c := newClient()
-	fmt.Printf("Solution body: %s\n", string(b))
+	if FlagDebug {
+		fmt.Printf("Solution body: %s\n", string(b))
+	}
 	sol, err := c.AddSolutionFromJSON(orgId, clusterId, string(b))
 	return sol, err
 }
 
-func deleteSolution(orgId, clusterId, solutionId int) (error) {
+func deleteSolution(orgId, clusterId, solutionId int) error {
 
 	c := newClient()
 	err := c.DeleteSolution(orgId, clusterId, solutionId)

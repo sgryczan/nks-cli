@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
-	"text/tabwriter"
 	"os"
 	"strings"
-	"encoding/json"
+	"text/tabwriter"
+
 	models "gitlab.com/sgryczan/nks-cli/nks/models"
 
 	"github.com/spf13/cobra"
@@ -13,23 +14,21 @@ import (
 
 var flagCreateRepositorySourceType string
 
-
-
 var repositoryCmd = &cobra.Command{
-	Use:   "repositories",
+	Use:     "repositories",
 	Aliases: []string{"repos", "repo"},
-	Short: "manage chart repositories",
-	Long:  ``,
+	Short:   "manage chart repositories",
+	Long:    ``,
 	//Run: func(cmd *cobra.Command, args []string) {
 	//	fmt.Println("NKS CLI Version - v0.0.1 (alpha)")
 	//},
 }
 
 var listRepositoryCmd = &cobra.Command{
-	Use:   "list",
+	Use:     "list",
 	Aliases: []string{"l", "li", "lis"},
-	Short: "list custom repositories",
-	Long:  ``,
+	Short:   "list custom repositories",
+	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		repos := listRepositories()
 		printRepositories(repos)
@@ -49,7 +48,7 @@ func listRepositories() []models.Repository {
 	return data
 }
 
-func GetRepositoryByName(name string) (models.Repository, error) {
+func GetRepositoryByName(name string, debug bool) (models.Repository, error) {
 	var err error
 	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", CurrentConfig.OrgID)
 	res, err := httpRequest("GET", url)
@@ -61,28 +60,37 @@ func GetRepositoryByName(name string) (models.Repository, error) {
 	check(err)
 
 	for _, repo := range repositories {
+
+		if debug {
+			fmt.Printf("GetRepositoryByName() - Checking repository %s\n", name)
+		}
 		if repo.Name == name {
+			if debug {
+				fmt.Printf("GetRepositoryByName() - Matched repository %s\n", name)
+			}
 			return repo, err
 		}
 	}
-
-
+	if FlagDebug {
+		fmt.Printf("GetRepositoryByName() - Failed to match repository %s\n", name)
+	}
 	r := models.Repository{}
+	err = fmt.Errorf("Failed to match repository - %s", name)
 	return r, err
 }
 
 var createRepositoryCmd = &cobra.Command{
-	Use:   "create",
+	Use:     "create",
 	Aliases: []string{"cr", "crea"},
-	Short: "create a custom chart repo",
-	Long:  ``,
+	Short:   "create a custom chart repo",
+	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		if strings.HasPrefix(flagRepositoryURL, "github.com") {
 			flagRepositoryURL = fmt.Sprintf("https://%s", flagRepositoryURL)
 		}
 		i := models.CheckRepositoryInput{
-			Name: flagRepositoryName,
-			URL: flagRepositoryURL,
+			Name:   flagRepositoryName,
+			URL:    flagRepositoryURL,
 			Source: flagCreateRepositorySourceType,
 		}
 
@@ -93,7 +101,6 @@ var createRepositoryCmd = &cobra.Command{
 
 		n, err := createRepository(input)
 		check(err)
-		
 
 		printRepositories(*n)
 	},
@@ -101,9 +108,8 @@ var createRepositoryCmd = &cobra.Command{
 
 var flagRepositoryName string
 var flagRepositorySource string
-var flagRepositoryURL	string
-var flagRepositoryID	int
-
+var flagRepositoryURL string
+var flagRepositoryID int
 
 func checkRepository(i models.CheckRepositoryInput) (*models.CheckRepositoryResponse, error) {
 	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos/check", CurrentConfig.OrgID)
@@ -142,19 +148,19 @@ func createRepository(i models.CreateRepoInput) (*models.RepositoryS, error) {
 }
 
 var deleteRepositoryCmd = &cobra.Command{
-	Use:   "delete",
+	Use:     "delete",
 	Aliases: []string{"rm", "del", "remove"},
-	Short: "delete a custom chart repo",
-	Long:  ``,
+	Short:   "delete a custom chart repo",
+	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		deleteRepository(flagRepositoryID)
 		printRepositories(listRepositories())
 	},
 }
 
-func deleteRepository(repoId int) (error) {
+func deleteRepository(repoId int) error {
 	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos/%d", CurrentConfig.OrgID, repoId)
-	
+
 	_, err := httpRequest("DELETE", url)
 	check(err)
 
@@ -183,7 +189,7 @@ func init() {
 	createRepositoryCmd.Flags().StringVarP(&flagRepositoryURL, "url", "u", "", "url of repository")
 
 	deleteRepositoryCmd.Flags().IntVarP(&flagRepositoryID, "id", "i", 0, "id of repository")
-	
+
 	e := createRepositoryCmd.MarkFlagRequired("name")
 	check(e)
 	e = createRepositoryCmd.MarkFlagRequired("url")

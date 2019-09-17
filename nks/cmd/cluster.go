@@ -3,14 +3,14 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"strconv"
-	"reflect"
-	"text/tabwriter"
 	"io/ioutil"
+	"os"
+	"reflect"
+	"strconv"
+	"text/tabwriter"
 
-	homedir "github.com/mitchellh/go-homedir"
 	nks "github.com/NetApp/nks-sdk-go/nks"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -93,12 +93,12 @@ var gceDefaults = map[string]interface{}{
 }
 
 var clusterCmd = &cobra.Command{
-	Use:   "clusters",
+	Use:     "clusters",
 	Aliases: []string{"cl", "clus", "clu", "clusters"},
-	Short: "manage cluster resources",
-	Long:  ``,
+	Short:   "manage cluster resources",
+	Long:    ``,
 	//Run: func(cmd *cobra.Command, args []string) {
-	//	
+	//
 	//},
 }
 
@@ -109,10 +109,10 @@ var createClusterCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		template := generateClusterTemplate()
 		template.Name = createClusterNamef
-		if flagDebug {
+		if FlagDebug {
 			fmt.Printf("Template:\n%+v", template)
 		}
-		
+
 		if createClusterMasterSize != "" {
 			template.MasterSize = createClusterMasterSize
 		}
@@ -125,26 +125,27 @@ var createClusterCmd = &cobra.Command{
 			template.WorkerSize = createClusterWorkerSize
 		}
 
-		if flagDebug {
+		if FlagDebug {
 			fmt.Printf("Template:\n \t%+v", template)
-		} 
+		}
 
+		fmt.Printf("Creating cluster '%s'...", createClusterNamef)
 		newCluster, err := createCluster(template)
 		check(err)
 		printClusters([]nks.Cluster{newCluster})
 
 		if CurrentConfig.ClusterId == 0 {
-			setCluster(newCluster.ID)	
+			setCluster(newCluster.ID)
 		}
 
 	},
 }
 
 var deleteClusterCmd = &cobra.Command{
-	Use:   "delete",
+	Use:     "delete",
 	Aliases: []string{"rm", "del"},
-	Short: "delete a cluster",
-	Long:  ``,
+	Short:   "delete a cluster",
+	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		err := deleteClusterByID(deleteClusterIDf)
 		check(err)
@@ -169,14 +170,14 @@ var listClustersCmd = &cobra.Command{
 			if err != nil {
 				fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
 			}
-			
+
 		}
 		if len(*c) > 0 {
 			if CurrentConfig.ClusterId == 0 {
-				setCluster((*c)[0].ID)	
+				setCluster((*c)[0].ID)
 			}
 		}
-		
+
 		printClusters(*c)
 	},
 }
@@ -193,7 +194,7 @@ var getClustersCmd = &cobra.Command{
 
 		cl, err := getClusterByID(i)
 		check(err)
-			
+
 		s := reflect.ValueOf(cl).Elem()
 		typeOfT := s.Type()
 
@@ -214,7 +215,7 @@ func printClusters(cs []nks.Cluster) {
 		} else {
 			fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t\n", c.Name, c.ID, c.Provider, c.NodeCount, c.KubernetesVersion, c.State)
 		}
-		
+
 	}
 	w.Flush()
 }
@@ -252,7 +253,7 @@ func getClusterByID(clusterId int) (*nks.Cluster, error) {
 	return cl, err
 }
 
-func setClusterKubeConfig(clusterId int)  {
+func setClusterKubeConfig(clusterId int) {
 	c := newClient()
 	kubeConfig, err := c.GetKubeConfig(CurrentConfig.OrgID, CurrentConfig.ClusterId)
 	if err != nil {
@@ -264,7 +265,6 @@ func setClusterKubeConfig(clusterId int)  {
 	if err != nil {
 		fmt.Printf("There was an error finding your home directory: %v", err)
 	}
-
 
 	err = ioutil.WriteFile(fmt.Sprintf("%s/.kube/config", home), b, 0644)
 	if err != nil {
@@ -283,9 +283,9 @@ func deleteClusterByID(clusterId int) error {
 		err = c.DeleteCluster(o, clusterId)
 	}
 	check(err)
-	
+
 	if clusterId == CurrentConfig.ClusterId {
-		setCluster(0)	
+		setCluster(0)
 	}
 
 	cl, err := getAllClusters()
@@ -298,12 +298,12 @@ func createCluster(cl createClusterInputGCE) (nks.Cluster, error) {
 	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/clusters", CurrentConfig.OrgID)
 	b, err := json.Marshal(cl)
 	check(err)
-	if flagDebug {
+	if FlagDebug {
 		fmt.Printf("\nSending request with body:\n%s\n", b)
 	}
 
 	res, err := httpRequestPost("POST", url, b)
-	if flagDebug {
+	if FlagDebug {
 		fmt.Printf("Got response: \n%s", string(res))
 	}
 	check(err)
@@ -331,7 +331,6 @@ func init() {
 	clusterCmd.AddCommand(deleteClusterCmd)
 	clusterCmd.AddCommand(listClustersCmd)
 
-
 	listClustersCmd.Flags().IntVarP(&getClusterId, "id", "", 0, "ID of cluster")
 	getClustersCmd.Flags().IntVarP(&getClusterId, "id", "", 0, "ID of cluster")
 	getClustersCmd.Flags().BoolVarP(&getClusterAllf, "all", "a", false, "Get everything (incl. Service clusters)")
@@ -343,7 +342,6 @@ func init() {
 	createClusterCmd.Flags().IntVarP(&createClusterNumWorkers, "num-workers", "w", 2, "Number of worker nodes (default: 2)")
 	e := createClusterCmd.MarkFlagRequired("name")
 	check(e)
-
 
 	deleteClusterCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "ID of cluster to delete")
 	deleteClusterCmd.Flags().IntVarP(&deleteClusterIDf, "id", "i", 0, "ID of cluster to delete")
