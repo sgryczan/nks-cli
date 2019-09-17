@@ -17,10 +17,10 @@ var flagClusterId int
 var flagSolutionId int
 var flagSolutionName string
 var flagSolutionRepoName string
+var flagSolutionReleaseName string
 var flagForce bool
 var flagGenerateCompletions bool
-var flagDebug bool
-
+var FlagDebug bool
 
 func newClient() *nks.APIClient {
 	client := nks.NewClient(viper.GetString("api_token"), viper.GetString("api_url"))
