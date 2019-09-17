@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	homedir "github.com/mitchellh/go-homedir"
 	nks "github.com/NetApp/nks-sdk-go/nks"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 )
 
@@ -34,7 +34,7 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig, initClient)
+	cobra.OnInitialize(initConfigSource, initClient, initCurrentConfig)
 
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
@@ -56,9 +56,9 @@ func initClient() {
 }
 
 // initConfig reads in config file and ENV variables if set.
-func initConfig() {
+func initConfigSource() {
 	if flagGenerateCompletions {
-		rootCmd.GenBashCompletion(os.Stdout);
+		rootCmd.GenBashCompletion(os.Stdout)
 		os.Exit(0)
 	}
 	if cfgFile != "" {
@@ -82,8 +82,16 @@ func initConfig() {
 		viper.BindEnv(key)
 	}
 	viper.AutomaticEnv() // read in environment variables that match
-	err := viper.Unmarshal(CurrentConfig)
-	check(err)
+	if FlagDebug {
+		fmt.Printf("DEBUG - viper settings: %v\n", viper.AllSettings())
+		viper.AllSettings()
+	}
+
+	syncRunningConfig()
+
+	if FlagDebug {
+		fmt.Printf("DEBUG - Current Config: %+v\n", CurrentConfig)
+	}
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
@@ -92,8 +100,14 @@ func initConfig() {
 		//fmt.Printf("Found existing config: %+v", CurrentConfig)
 	} else {
 		fmt.Println("Could not find config file!")
-		bootstrapConfigFile()
+
+		//
 	}
+}
+
+func initCurrentConfig() {
+
+	bootstrapConfigFile()
 
 	if CurrentConfig.OrgID == 0 {
 		configureDefaultOrganization()
@@ -111,4 +125,5 @@ func initConfig() {
 	if CurrentConfig.ProviderKeySetID == 0 {
 		setDefaultProviderKey(CurrentConfig.Provider)
 	}
+
 }

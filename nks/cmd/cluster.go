@@ -20,13 +20,12 @@ import (
 var getClusterId int
 var flagListAllClusters bool
 
-var flagClusterName 			string
-var flagProviderName			string
-var createClusterNumWorkers 	int
-var createClusterWorkerSize 	string
-var createClusterMasterSize 	string
-var deleteClusterIDf 			int
-
+var flagClusterName string
+var flagProviderName string
+var createClusterNumWorkers int
+var createClusterWorkerSize string
+var createClusterMasterSize string
+var deleteClusterIDf int
 
 var gceDefaults = map[string]interface{}{
 	// Name is implied
@@ -53,38 +52,38 @@ var gceDefaults = map[string]interface{}{
 
 var hciDefaults = map[string]interface{}{
 	// Name is implied
-	"Provider":          		"hci",
-	"ProviderKey":       		63207,
-	"Workspace":				22022,
+	"Provider":    "hci",
+	"ProviderKey": 63207,
+	"Workspace":   22022,
 
-	"MasterCount":       		1,
-	"MasterSize":        		"m",
-	"MasterRootDiskSize": 		50,
-	"MasterGPUInstanceSize":	"",
-	"MasterGPUCoreCount":		nil,
+	"MasterCount":           1,
+	"MasterSize":            "m",
+	"MasterRootDiskSize":    50,
+	"MasterGPUInstanceSize": "",
+	"MasterGPUCoreCount":    nil,
 
-	"WorkerCount":       		2,
-	"WorkerSize":        		"m",
-	"WorkerGPUInstanceSize":	"",
-	"WorkerGPUCoreCount":		nil,
-	"WorkerRootDiskSize":		50,
+	"WorkerCount":           2,
+	"WorkerSize":            "m",
+	"WorkerGPUInstanceSize": "",
+	"WorkerGPUCoreCount":    nil,
+	"WorkerRootDiskSize":    50,
 
-	"Region":            		"LAB-RTP",
+	"Region": "LAB-RTP",
 
-	"KubernetesVersion": 		"v1.14.3",
-	"RbacEnabled":       		true,
-	"DashboardEnabled":  		true,
-	"EtcdType":          		"classic",
-	"Platform":          		"debian",
-	"Channel":           		"stable",
-	"Zone":						"",
-	"Config":					map[string]bool{"enable_experimental_features": true},
-	"SSHKeySet":         		&CurrentConfig.SSHKeySetId,
-	"Solutions":         		[]nks.Solution{nks.Solution{Solution: "helm_tiller"}},
-	"Features":					[]string{},
-	"MinNodeCount":				nil,
-	"MaxNodeCount":				nil,
-	"Owner":					26309, // ???
+	"KubernetesVersion": "v1.14.3",
+	"RbacEnabled":       true,
+	"DashboardEnabled":  true,
+	"EtcdType":          "classic",
+	"Platform":          "debian",
+	"Channel":           "stable",
+	"Zone":              "",
+	"Config":            map[string]bool{"enable_experimental_features": true},
+	"SSHKeySet":         &CurrentConfig.SSHKeySetId,
+	"Solutions":         []nks.Solution{nks.Solution{Solution: "helm_tiller"}},
+	"Features":          []string{},
+	"MinNodeCount":      nil,
+	"MaxNodeCount":      nil,
+	"Owner":             26309, // ???
 	//"ProviderSubnetID":    "__new__",
 	//"ProviderSubnetCidr":  "172.23.1.0/24",
 	//"ProviderNetworkID":   "__new__",
@@ -132,7 +131,7 @@ var createClusterCmd = &cobra.Command{
 			fmt.Printf("Template:\n \t%+v", template)
 		}
 
-		fmt.Printf("Creating cluster '%s'...", flagClusterName)
+		fmt.Printf("Creating cluster '%s'...\n", flagClusterName)
 		newCluster, err := createCluster(template)
 		check(err)
 		printClusters([]nks.Cluster{newCluster})
@@ -248,7 +247,6 @@ func getClusterByID(clusterId int) (*nks.Cluster, error) {
 	o, err := strconv.Atoi(viper.GetString("org_id"))
 	check(err)
 
-
 	cl, err := SDKClient.GetCluster(o, clusterId)
 
 	check(err)
@@ -356,7 +354,7 @@ func init() {
 	e := createClusterCmd.MarkFlagRequired("name")
 	check(e)
 
-	deleteClusterCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "ID of cluster to delete")
+	deleteClusterCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "Force deletion")
 	deleteClusterCmd.Flags().IntVarP(&deleteClusterIDf, "id", "i", 0, "ID of cluster to delete")
 	e = deleteClusterCmd.MarkFlagRequired("id")
 	check(e)

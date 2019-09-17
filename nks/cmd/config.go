@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/spf13/viper"
-	homedir "github.com/mitchellh/go-homedir"
 	nks "github.com/NetApp/nks-sdk-go/nks"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var configFields = []string{
@@ -35,10 +35,10 @@ type config struct {
 }
 
 var configCmd = &cobra.Command{
-	Use:   "config",
+	Use:     "config",
 	Aliases: []string{"conf"},
-	Short: "nks cli configuration",
-	Long:  `Various commands for configuring nks cli`,
+	Short:   "nks cli configuration",
+	Long:    `Various commands for configuring nks cli`,
 	//Run: func(cmd *cobra.Command, args []string) {
 	//	fmt.Println("config called")
 	//},
@@ -138,11 +138,16 @@ func syncConfig() {
 	check(err)
 }
 
+func syncRunningConfig() {
+	err := viper.Unmarshal(CurrentConfig)
+	check(err)
+}
+
 func newConfig() error {
 	home, _ := homedir.Dir()
 
 	fmt.Println("Creating config file...")
-	token := readApiToken()
+	token := CurrentConfig.ApiToken
 
 	createConfigFile(fmt.Sprintf("%s/.nks.yaml", home), token)
 
