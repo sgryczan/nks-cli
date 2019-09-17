@@ -225,7 +225,16 @@ func printClusters(cs []nks.Cluster) {
 func getClusters() (*[]nks.Cluster, error) {
 	o := CurrentConfig.OrgID
 
+	if FlagDebug {
+		fmt.Printf("getClusters(%d)\n", o)
+	}
+
 	cls, err := SDKClient.GetClusters(o)
+
+	if FlagDebug {
+		fmt.Printf("getClusters() - completed\n")
+		fmt.Printf("getClusters() - response: %v\n", cls)
+	}
 
 	check(err)
 
