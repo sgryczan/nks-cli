@@ -93,21 +93,24 @@ func initConfigSource() {
 		fmt.Printf("DEBUG - Current Config: %+v\n", CurrentConfig)
 	}
 
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		err = viper.Unmarshal(CurrentConfig)
-		check(err)
-		//fmt.Printf("Found existing config: %+v", CurrentConfig)
-	} else {
-		fmt.Println("Could not find config file!")
-
-		//
-	}
 }
 
 func initCurrentConfig() {
 
-	bootstrapConfigFile()
+	// If a config file is found, read it in.
+	if err := viper.ReadInConfig(); err == nil {
+		err = viper.Unmarshal(CurrentConfig)
+		check(err)
+		if FlagDebug {
+			fmt.Printf("Found existing config: %+v\n", CurrentConfig)
+		}
+
+	} else {
+		if FlagDebug {
+			fmt.Println("Could not find config file!")
+		}
+		bootstrapConfigFile()
+	}
 
 	if CurrentConfig.OrgID == 0 {
 		configureDefaultOrganization()

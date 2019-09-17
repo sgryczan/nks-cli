@@ -88,6 +88,7 @@ var createRepositoryCmd = &cobra.Command{
 		if strings.HasPrefix(flagRepositoryURL, "github.com") {
 			flagRepositoryURL = fmt.Sprintf("https://%s", flagRepositoryURL)
 		}
+		//flagRepositoryName = strings.ToLower(flagRepositoryName)
 		i := models.CheckRepositoryInput{
 			Name:   flagRepositoryName,
 			URL:    flagRepositoryURL,
@@ -99,8 +100,18 @@ var createRepositoryCmd = &cobra.Command{
 
 		input := models.CreateRepoInput{i}
 
+		if FlagDebug {
+			fmt.Printf("CreateRepository Input: %+v\n", input)
+		}
+
 		n, err := createRepository(input)
-		check(err)
+		if FlagDebug {
+			fmt.Printf("CreateRepository Response: %+v\n", n)
+		}
+		if err != nil {
+			fmt.Printf("%s", err)
+			os.Exit(1)
+		}
 
 		printRepositories(*n)
 	},
@@ -131,20 +142,30 @@ func checkRepository(i models.CheckRepositoryInput) (*models.CheckRepositoryResp
 
 func createRepository(i models.CreateRepoInput) (*models.RepositoryS, error) {
 	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", CurrentConfig.OrgID)
+	if FlagDebug {
+		fmt.Printf("createRepository() - URL (pre-marshal) : %s\n", url)
+	}
 	b, err := json.Marshal(i)
+	if FlagDebug {
+		fmt.Printf("createRepository() - input bytes (post-marshal) : %s\n", b)
+	}
+
 	check(err)
 
 	//fmt.Printf("body2: %s\n\n", string(b))
-	res, err := httpRequestPost("POST", url, b)
-	check(err)
-	//fmt.Printf("response2: %s\n\n", string(res))
+	res, respErr := httpRequestPost("POST", url, b)
+	if FlagDebug {
+		fmt.Printf("createRepository() -  Response: %s\n\n", string(res))
+	}
 
 	data := models.RepositoryS{}
 
 	err = json.Unmarshal(res, &data)
-	check(err)
+	if err != nil {
+		fmt.Printf("Error - %s\n", res)
+	}
 
-	return &data, err
+	return &data, respErr
 }
 
 var deleteRepositoryCmd = &cobra.Command{
