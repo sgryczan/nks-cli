@@ -20,7 +20,8 @@ var flagSolutionName string
 var flagSolutionRepoName string
 var flagSolutionReleaseName string
 var flagForce bool
-var flagGenerateCompletions bool
+var flagGenerateCompletionBash bool
+var flagGenerateCompletionZsh bool
 var FlagDebug bool
 
 var SDKClient *nks.APIClient

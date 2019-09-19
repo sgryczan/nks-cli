@@ -44,10 +44,10 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.PersistentFlags().BoolVarP(&flagGenerateCompletions, "generatecompletion", "b", false, "Generate bash completion scripts")
+	rootCmd.PersistentFlags().BoolVarP(&flagGenerateCompletionBash, "generatecompletion", "b", false, "Generate bash completion scripts")
 	rootCmd.PersistentFlags().MarkHidden("generatecompletion")
 
-	rootCmd.PersistentFlags().BoolVarP(&flagGenerateCompletions, "generatecompletionzsh", "z", false, "Generate zsh completion scripts")
+	rootCmd.PersistentFlags().BoolVarP(&flagGenerateCompletionZsh, "generatecompletionzsh", "z", false, "Generate zsh completion scripts")
 	rootCmd.PersistentFlags().MarkHidden("generatecompletionzsh")
 
 	rootCmd.PersistentFlags().BoolVarP(&FlagDebug, "debug", "", false, "Debug logging")
@@ -60,8 +60,12 @@ func initClient() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfigSource() {
-	if flagGenerateCompletions {
+	if flagGenerateCompletionBash {
 		rootCmd.GenBashCompletion(os.Stdout)
+		os.Exit(0)
+	}
+	if flagGenerateCompletionZsh {
+		rootCmd.GenZshCompletion(os.Stdout)
 		os.Exit(0)
 	}
 	if cfgFile != "" {
