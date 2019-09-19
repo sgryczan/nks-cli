@@ -11,10 +11,10 @@ import (
 )
 
 var organizationCmd = &cobra.Command{
-	Use:   "organization",
+	Use:     "organization",
 	Aliases: []string{"orgs", "org", "organizations"},
-	Short: "manage organizations",
-	Long:  ``,
+	Short:   "manage organizations",
+	Long:    ``,
 	//Run: func(cmd *cobra.Command, args []string) {
 	//	fmt.Println("organization called")
 	//},
@@ -30,7 +30,12 @@ func printOrgs(o *[]nks.Organization) {
 }
 
 func GetOrgs() (*[]nks.Organization, error) {
-
+	if SDKClient.Token == "" {
+		if FlagDebug {
+			fmt.Println("Debug - GetOrgs(), no configured token in client, initializing")
+		}
+		initClient()
+	}
 	data, err := SDKClient.GetOrganizations()
 	check(err)
 
@@ -38,6 +43,9 @@ func GetOrgs() (*[]nks.Organization, error) {
 }
 
 func getDefaultOrg() (nks.Organization, error) {
+	if FlagDebug {
+		fmt.Println("Debug - getDefaultOrg()")
+	}
 	o, err := GetOrgs()
 	if err != nil {
 		o = &[]nks.Organization{}
@@ -47,21 +55,19 @@ func getDefaultOrg() (nks.Organization, error) {
 	return (*o)[0], err
 }
 
-
 var listOrganizationsCmd = &cobra.Command{
-	Use:     "list",
-	Short:   "list organizations",
-	Long:    ``,
+	Use:   "list",
+	Short: "list organizations",
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		getOrganizations()
 	},
 }
 
-
 var getOrganizationsCmd = &cobra.Command{
-	Use:     "get",
-	Short:   "get organization details",
-	Long:    ``,
+	Use:   "get",
+	Short: "get organization details",
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		if getOrgsId != "" {
 			i, err := strconv.Atoi(getOrgsId)

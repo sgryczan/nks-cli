@@ -139,15 +139,31 @@ func syncConfig() {
 }
 
 func syncRunningConfig() {
+	if FlagDebug {
+		fmt.Println("Debug - syncRunningConfig()")
+	}
 	err := viper.Unmarshal(CurrentConfig)
+	if FlagDebug {
+		fmt.Printf("Debug - %+v", CurrentConfig)
+	}
 	check(err)
 }
 
 func newConfig() error {
+	if FlagDebug {
+		fmt.Println("Debug - newConfig()")
+	}
 	home, _ := homedir.Dir()
+	var token string
 
 	fmt.Println("Creating config file...")
-	token := CurrentConfig.ApiToken
+	if CurrentConfig.ApiToken != "" {
+		token = CurrentConfig.ApiToken
+	} else {
+		token = readApiToken()
+		CurrentConfig.ApiToken = token
+	}
+	syncRunningConfig()
 
 	createConfigFile(fmt.Sprintf("%s/.nks.yaml", home), token)
 
@@ -162,6 +178,9 @@ func newConfig() error {
 }
 
 func createConfigFile(filename string, token string) error {
+	if FlagDebug {
+		fmt.Println("Debug - createConfigFile()")
+	}
 	for _, s := range configFields {
 		var v interface{}
 		switch s {
@@ -191,6 +210,9 @@ func createConfigFile(filename string, token string) error {
 }
 
 func configureDefaultOrganization() {
+	if FlagDebug {
+		fmt.Println("Debug - configureDefaultOrganization()")
+	}
 	o, err := getDefaultOrg()
 	if err != nil {
 		fmt.Println("Could not get default organization")
