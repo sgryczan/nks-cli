@@ -47,6 +47,9 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&flagGenerateCompletions, "generatecompletion", "b", false, "Generate bash completion scripts")
 	rootCmd.PersistentFlags().MarkHidden("generatecompletion")
 
+	rootCmd.PersistentFlags().BoolVarP(&flagGenerateCompletions, "generatecompletionzsh", "z", false, "Generate zsh completion scripts")
+	rootCmd.PersistentFlags().MarkHidden("generatecompletionzsh")
+
 	rootCmd.PersistentFlags().BoolVarP(&FlagDebug, "debug", "", false, "Debug logging")
 	rootCmd.PersistentFlags().MarkHidden("debug")
 }
