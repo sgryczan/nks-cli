@@ -209,6 +209,9 @@ var getClustersCmd = &cobra.Command{
 }
 
 func printClusters(cs []nks.Cluster) {
+	if FlagDebug {
+		fmt.Printf("Debug - printClusters()\n")
+	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
 	fmt.Fprintf(w, "NAME\tID\tPROVIDER\tNODES\tK8s_VERSION\tSTATE\t\n")
 	for _, c := range cs {
@@ -226,14 +229,14 @@ func getClusters() (*[]nks.Cluster, error) {
 	o := CurrentConfig.OrgID
 
 	if FlagDebug {
-		fmt.Printf("getClusters(%d)\n", o)
+		fmt.Printf("Debug - getClusters(%d)\n", o)
 	}
 
 	cls, err := SDKClient.GetClusters(o)
 
 	if FlagDebug {
-		fmt.Printf("getClusters() - completed\n")
-		fmt.Printf("getClusters() - response: %v\n", cls)
+		fmt.Printf("Debug - getClusters() - completed\n")
+		fmt.Printf("Debug - getClusters() - response: %v\n", cls)
 	}
 
 	check(err)

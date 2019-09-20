@@ -144,7 +144,7 @@ func syncRunningConfig() {
 	}
 	err := viper.Unmarshal(CurrentConfig)
 	if FlagDebug {
-		fmt.Printf("Debug - %+v", CurrentConfig)
+		fmt.Printf("Debug - %+v\n", CurrentConfig)
 	}
 	check(err)
 }
@@ -285,6 +285,9 @@ func setSSHKey(s string) {
 }
 
 func bootstrapConfigFile() {
+	if FlagDebug {
+		fmt.Printf("Debug - bootstrapConfigFile()\n")
+	}
 	configBootStrap = true
 	newConfig()
 }

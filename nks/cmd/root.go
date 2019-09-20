@@ -55,11 +55,17 @@ func init() {
 }
 
 func initClient() {
+	if FlagDebug {
+		fmt.Printf("Debug - initClient()\n")
+	}
 	SDKClient = nks.NewClient(viper.GetString("api_token"), viper.GetString("api_url"))
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfigSource() {
+	if FlagDebug {
+		fmt.Println("Debug - initConfigSource()")
+	}
 	if flagGenerateCompletionBash {
 		rootCmd.GenBashCompletion(os.Stdout)
 		os.Exit(0)
@@ -82,6 +88,7 @@ func initConfigSource() {
 		// Search config in home directory with name ".nks" (without extension).
 		viper.AddConfigPath(home)
 		viper.SetConfigName(".nks")
+		viper.ReadInConfig()
 	}
 
 	viper.SetEnvPrefix("nks") // NKS_<whatever>
@@ -89,8 +96,11 @@ func initConfigSource() {
 		viper.BindEnv(key)
 	}
 	viper.AutomaticEnv() // read in environment variables that match
+	err := viper.Unmarshal(CurrentConfig)
+	check(err)
+
 	if FlagDebug {
-		fmt.Printf("DEBUG - viper settings: %v\n", viper.AllSettings())
+		fmt.Printf("DEBUG - viper settings from environment: %+v\n", viper.AllSettings())
 		viper.AllSettings()
 	}
 
@@ -105,14 +115,7 @@ func initConfigSource() {
 func initCurrentConfig() {
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		err = viper.Unmarshal(CurrentConfig)
-		check(err)
-		if FlagDebug {
-			fmt.Printf("Found existing config: %+v\n", CurrentConfig)
-		}
-
-	} else {
+	if err := viper.ReadInConfig(); err != nil {
 		if FlagDebug {
 			fmt.Println("Could not find config file!")
 		}
