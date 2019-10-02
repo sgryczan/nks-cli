@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"text/tabwriter"
+	"time"
 
 	nks "github.com/NetApp/nks-sdk-go/nks"
 	"github.com/spf13/cobra"
@@ -32,6 +33,10 @@ func checkDefaultOrg() {
 }
 
 func printOrgs(o *[]nks.Organization) {
+
+	if FlagDebug {
+		fmt.Printf("Debug - printOrgs()\n")
+	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
 	fmt.Fprintf(w, "NAME\tID\t\n")
 	for _, org := range *o {
@@ -51,8 +56,19 @@ func GetOrgs() (*[]nks.Organization, error) {
 		}
 		initClient()
 	}
+
+	if FlagDebug {
+		fmt.Println("Debug - GetOrgs(): sending request")
+
+	}
+	start := time.Now()
 	data, err := SDKClient.GetOrganizations()
+	elapsed := time.Since(start)
 	check(err)
+
+	if FlagDebug {
+		fmt.Printf("Debug - GetOrgs(): request completed in %v\n", elapsed)
+	}
 
 	return &data, err
 }
