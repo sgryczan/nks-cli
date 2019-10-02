@@ -2,37 +2,32 @@ package cmd
 
 import (
 	"fmt"
-	"reflect"
 
 	nks "github.com/NetApp/nks-sdk-go/nks"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	vpr "github.com/spf13/viper"
 )
 
 var configFields = []string{
 	"api_token",
 	"api_url",
 	"org_id",
+	"workspace_id",
 	"cluster_id",
-	"provider",
+	"hci_keyset",
+	"aws_keyset",
+	"gce_keyset",
+	"gke_keyset",
+	"azr_keyset",
+	"eks_keyset",
+	"ssh_keyset",
 	"provider_keyset_id",
-	"ssh_keyset_id",
+	"provider",
 }
-
-var CurrentConfig = &config{}
 
 var configBootStrap bool
-
-type config struct {
-	OrgID            int    `mapstructure:"org_id"`
-	Provider         string `mapstructure:"provider"`
-	ProviderKeySetID int    `mapstructure:"provider_keyset_id"`
-	ApiToken         string `mapstructure:"api_token"`
-	ApiURL           string `mapstructure:"api_url"`
-	ClusterId        int    `mapstructure:"cluster_id"`
-	SSHKeySetId      int    `mapstructure:"ssh_keyset_id"`
-}
 
 var configCmd = &cobra.Command{
 	Use:     "config",
@@ -49,7 +44,7 @@ var initConfigCmd = &cobra.Command{
 	Short: "create a new configuration",
 	Run: func(cmd *cobra.Command, args []string) {
 		if !configBootStrap {
-			newConfig()
+			newConfigFile()
 		}
 	},
 }
@@ -61,14 +56,14 @@ var listConfigCmd = &cobra.Command{
 	Long:    "",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("Current configuration:\n\n")
-		t := CurrentConfig
-		s := reflect.ValueOf(t).Elem()
-		typeOfT := s.Type()
 
-		for i := 0; i < s.NumField(); i++ {
-			f := s.Field(i)
-			fmt.Printf("%s %s = %v\n",
-				typeOfT.Field(i).Name, f.Type(), f.Interface())
+		for _, k := range viper.AllKeys() {
+			v := vpr.Get(k)
+			if v != nil {
+				fmt.Printf("%s = %v\n",
+					k, v)
+			}
+
 		}
 	},
 }
@@ -78,7 +73,7 @@ var configSetCmd = &cobra.Command{
 	Short: "set configuration setting",
 	Long:  "",
 	/* Run: func(cmd *cobra.Command, args []string) {
-		for k, v := range viper.AllSettings() {
+		for k, v := range vpr.AllSettings() {
 			fmt.Printf("%s: %v\n", k, v)
 		}
 	}, */
@@ -89,14 +84,12 @@ var configSetTokenCmd = &cobra.Command{
 	Short: "set api token",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		viper.Set("api_token", args[0])
-		syncConfig()
+		vpr.Set("api_token", args[0])
 	},
 }
 
 func configSet(key string, value string) {
-	viper.Set(key, value)
-	syncConfig()
+	vpr.Set(key, value)
 }
 
 var configSetClusterCmd = &cobra.Command{
@@ -105,21 +98,54 @@ var configSetClusterCmd = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		setCluster(flagClusterId)
+		setCluster(flagOrganizationId)
+	},
+}
+
+var configSetOrganizationCmd = &cobra.Command{
+	Use:     "organization",
+	Aliases: []string{"org"},
+	Short:   "set default organization",
+	Long:    "",
+	Run: func(cmd *cobra.Command, args []string) {
+		setOrgID(flagOrganizationId)
+		setClusterID(0)
+		syncConfigFile()
+	},
+}
+
+var configSetWorkspaceCmd = &cobra.Command{
+	Use:     "workspace",
+	Aliases: []string{"ws"},
+	Short:   "set default workspace",
+	Long:    "",
+	Run: func(cmd *cobra.Command, args []string) {
+		setWorkSpaceID(flagWorkspaceId)
+		syncConfigFile()
 	},
 }
 
 func setCluster(clusterId int) {
-	viper.Set("cluster_id", clusterId)
-	syncConfig()
-	CurrentConfig.ClusterId = clusterId
+	vpr.Set("cluster_id", clusterId)
 	setClusterKubeConfig(clusterId)
 }
 
 func setClusterID(clusterId int) {
-	viper.Set("cluster_id", clusterId)
-	syncConfig()
-	CurrentConfig.ClusterId = clusterId
+	if FlagDebug {
+		fmt.Printf("Debug - setClusterID(%d)", clusterId)
+	}
+	vpr.Set("cluster_id", clusterId)
+}
+
+func setOrgID(orgID int) {
+	if FlagDebug {
+		fmt.Printf("Debug - setOrgID(%d)", orgID)
+	}
+	vpr.Set("org_id", orgID)
+}
+
+func setWorkSpaceID(workspaceID int) {
+	vpr.Set("workspace_id", workspaceID)
 }
 
 var configSetURLCmd = &cobra.Command{
@@ -127,52 +153,52 @@ var configSetURLCmd = &cobra.Command{
 	Short: "set api url",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		viper.Set("api_url", args[0])
-		syncConfig()
+		vpr.Set("api_url", args[0])
+
 	},
 }
 
-func syncConfig() {
-	viper.WriteConfig()
-	err := viper.Unmarshal(CurrentConfig)
-	check(err)
+func syncConfigFile() {
+	if FlagDebug {
+		fmt.Println("Debug - syncConfigFile()")
+	}
+	if err := vpr.ReadInConfig(); err != nil {
+		if FlagDebug {
+			fmt.Println("syncConfigFile() - No config file detected. Creating to allow sync.")
+		}
+		newConfigFile()
+	}
+	vpr.WriteConfig()
 }
 
-func syncRunningConfig() {
+func newConfigFile() error {
 	if FlagDebug {
-		fmt.Println("Debug - syncRunningConfig()")
-	}
-	err := viper.Unmarshal(CurrentConfig)
-	if FlagDebug {
-		fmt.Printf("Debug - %+v\n", CurrentConfig)
-	}
-	check(err)
-}
-
-func newConfig() error {
-	if FlagDebug {
-		fmt.Println("Debug - newConfig()")
+		fmt.Println("Debug - newConfigFile()")
 	}
 	home, _ := homedir.Dir()
 	var token string
 
 	fmt.Println("Creating config file...")
-	if CurrentConfig.ApiToken != "" {
-		token = CurrentConfig.ApiToken
+	if t := vpr.GetString("api_token"); t != "" {
+		token = t
 	} else {
 		token = readApiToken()
-		CurrentConfig.ApiToken = token
+		vpr.Set("api_token", token)
 	}
-	syncRunningConfig()
 
 	createConfigFile(fmt.Sprintf("%s/.nks.yaml", home), token)
 
-	// Search config in home directory with name ".nks" (without extension).
-	viper.AddConfigPath(home)
-	viper.SetConfigName(".nks")
+	//configureDefaultOrganization()
 
-	err := viper.Unmarshal(CurrentConfig)
-	check(err)
+	//fmt.Println("Setting Provider Key...")
+	//setDefaultProviderKey(vpr.GetString("provider"))
+
+	//fmt.Println("Setting SSH Key...")
+	//setSSHKey(vpr.GetString("provider"))
+
+	// Search config in home directory with name ".nks" (without extension).
+	vpr.AddConfigPath(home)
+	vpr.SetConfigName(".nks")
 
 	return nil
 }
@@ -188,23 +214,12 @@ func createConfigFile(filename string, token string) error {
 			v = token
 		case "api_url":
 			v = "https://api.nks.netapp.io"
-		case "provider":
-			v = "gce"
-		case "cluster_id":
-			v = 0
 		default:
-
 		}
-		viper.Set(s, v)
+		vpr.Set(s, v)
 	}
-	configureDefaultOrganization()
-	viper.WriteConfigAs(filename)
 
-	fmt.Println("Setting Provider Key...")
-	setDefaultProviderKey(viper.GetString("provider"))
-
-	fmt.Println("Setting SSH Key...")
-	setSSHKey(viper.GetString("provider"))
+	vpr.WriteConfigAs(filename)
 
 	return nil
 }
@@ -223,8 +238,8 @@ func configureDefaultOrganization() {
 }
 
 func setConfigDefaultOrg(o nks.Organization) {
-	viper.Set("org_id", o.ID)
-	syncConfig()
+	vpr.Set("org_id", o.ID)
+
 }
 
 func setDefaultProviderKey(p string) {
@@ -242,8 +257,8 @@ func setDefaultProviderKey(p string) {
 		fmt.Printf("no keysets found for provider %s!\n", p)
 	}
 
-	viper.Set("provider_keyset_id", v[0].ID)
-	syncConfig()
+	vpr.Set("provider_keyset_id", v[0].ID)
+
 }
 
 func setDefaultSSHKey() {
@@ -261,8 +276,8 @@ func setDefaultSSHKey() {
 		fmt.Println("Error configuring default SSH keyset. No user ssh keysets found!")
 	}
 
-	viper.Set("ssh_keyset_id", v[0].ID)
-	syncConfig()
+	vpr.Set("ssh_keyset_id", v[0].ID)
+
 }
 
 func setSSHKey(s string) {
@@ -280,8 +295,8 @@ func setSSHKey(s string) {
 		fmt.Println("No user ssh keysets found")
 	}
 
-	viper.Set("ssh_keyset_id", v[0].ID)
-	syncConfig()
+	vpr.Set("ssh_keyset_id", v[0].ID)
+
 }
 
 func bootstrapConfigFile() {
@@ -289,7 +304,7 @@ func bootstrapConfigFile() {
 		fmt.Printf("Debug - bootstrapConfigFile()\n")
 	}
 	configBootStrap = true
-	newConfig()
+	newConfigFile()
 }
 
 func init() {
@@ -297,11 +312,22 @@ func init() {
 	configCmd.AddCommand(listConfigCmd)
 	configCmd.AddCommand(configSetCmd)
 	configCmd.AddCommand(initConfigCmd)
+
 	configSetCmd.AddCommand(configSetTokenCmd)
 	configSetCmd.AddCommand(configSetURLCmd)
 	configSetCmd.AddCommand(configSetClusterCmd)
+	configSetCmd.AddCommand(configSetOrganizationCmd)
+	configSetCmd.AddCommand(configSetWorkspaceCmd)
 
-	configSetClusterCmd.Flags().IntVarP(&flagClusterId, "id", "i", CurrentConfig.ClusterId, "ID of target cluster")
+	configSetClusterCmd.Flags().IntVarP(&flagClusterId, "id", "i", vpr.GetInt("cluster_id"), "ID of target cluster")
 	e := configSetClusterCmd.MarkFlagRequired("id")
+	check(e)
+
+	configSetOrganizationCmd.Flags().IntVarP(&flagOrganizationId, "id", "i", 0, "ID of organization")
+	e = configSetOrganizationCmd.MarkFlagRequired("id")
+	check(e)
+
+	configSetWorkspaceCmd.Flags().IntVarP(&flagWorkspaceId, "id", "i", 0, "ID of workspace")
+	e = configSetWorkspaceCmd.MarkFlagRequired("id")
 	check(e)
 }

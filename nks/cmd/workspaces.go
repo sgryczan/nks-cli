@@ -2,17 +2,19 @@ package cmd
 
 import (
 	"fmt"
-	"text/tabwriter"
 	"os"
-	"github.com/spf13/cobra"
+	"text/tabwriter"
+
 	nks "github.com/NetApp/nks-sdk-go/nks"
+	"github.com/spf13/cobra"
+	vpr "github.com/spf13/viper"
 )
 
 var workspacesCmd = &cobra.Command{
-	Use:   "workspaces",
+	Use:     "workspaces",
 	Aliases: []string{"ws"},
-	Short: "manage workspaces",
-	Long: ``,
+	Short:   "manage workspaces",
+	Long:    ``,
 	/* Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("workspaces called")
 	}, */
@@ -21,9 +23,11 @@ var workspacesCmd = &cobra.Command{
 var listWorkspacesCmd = &cobra.Command{
 	Use:   "list",
 	Short: "list workspaces in organization",
-	Long: ``,
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		o := CurrentConfig.OrgID
+		checkDefaultOrg()
+
+		o := vpr.GetInt("org_id")
 		if flagOrganizationId != 0 {
 			o = flagOrganizationId
 		}
@@ -38,7 +42,7 @@ var listWorkspacesCmd = &cobra.Command{
 }
 
 func listWorkspaces(orgId int) ([]nks.Workspace, error) {
-	
+
 	ws, err := SDKClient.GetWorkspaces(orgId)
 	return ws, err
 }
@@ -46,12 +50,11 @@ func listWorkspaces(orgId int) ([]nks.Workspace, error) {
 func printWorkspaces(wss []nks.Workspace) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
 	fmt.Fprintf(w, "NAME\tID\tORG\tCLUSTERS\tFEDERATIONS\tTEAM WORKSPACES\t\n")
-	for _, ws := range wss {	
+	for _, ws := range wss {
 		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t\n", ws.Name, ws.ID, ws.Org, len(ws.Clusters), len(ws.Federations), len(ws.TeamWorkspaces))
 	}
 	w.Flush()
 }
-
 
 func init() {
 	rootCmd.AddCommand(workspacesCmd)

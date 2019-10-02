@@ -8,7 +8,7 @@ import (
 
 	nks "github.com/NetApp/nks-sdk-go/nks"
 	homedir "github.com/mitchellh/go-homedir"
-	"github.com/spf13/viper"
+	vpr "github.com/spf13/viper"
 )
 
 var cfgFile string
@@ -52,13 +52,15 @@ func init() {
 
 	rootCmd.PersistentFlags().BoolVarP(&FlagDebug, "debug", "", false, "Debug logging")
 	rootCmd.PersistentFlags().MarkHidden("debug")
+
+	rootCmd.PersistentFlags().BoolVarP(&flagSetDefaults, "set-defaults", "", false, "Configure default values if possible")
 }
 
 func initClient() {
 	if FlagDebug {
 		fmt.Printf("Debug - initClient()\n")
 	}
-	SDKClient = nks.NewClient(viper.GetString("api_token"), viper.GetString("api_url"))
+	SDKClient = nks.NewClient(vpr.GetString("api_token"), vpr.GetString("api_url"))
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -66,6 +68,8 @@ func initConfigSource() {
 	if FlagDebug {
 		fmt.Println("Debug - initConfigSource()")
 	}
+
+	// If a completion flag is present skip initialization
 	if flagGenerateCompletionBash {
 		rootCmd.GenBashCompletion(os.Stdout)
 		os.Exit(0)
@@ -74,9 +78,11 @@ func initConfigSource() {
 		rootCmd.GenZshCompletion(os.Stdout)
 		os.Exit(0)
 	}
+
+	// Initialize from config file
 	if cfgFile != "" {
 		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
+		vpr.SetConfigFile(cfgFile)
 	} else {
 		// Find home directory.
 		home, err := homedir.Dir()
@@ -86,28 +92,22 @@ func initConfigSource() {
 		}
 
 		// Search config in home directory with name ".nks" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".nks")
-		viper.ReadInConfig()
+		vpr.AddConfigPath(home)
+		vpr.SetConfigName(".nks")
 	}
 
-	viper.SetEnvPrefix("nks") // NKS_<whatever>
+	vpr.ReadInConfig()
+
+	// Initialize from environment
+	vpr.SetEnvPrefix("nks") // NKS_<whatever>
 	for _, key := range configFields {
-		viper.BindEnv(key)
+		vpr.BindEnv(key)
 	}
-	viper.AutomaticEnv() // read in environment variables that match
-	err := viper.Unmarshal(CurrentConfig)
-	check(err)
+	vpr.AutomaticEnv() // read in environment variables that match
 
 	if FlagDebug {
-		fmt.Printf("DEBUG - viper settings from environment: %+v\n", viper.AllSettings())
-		viper.AllSettings()
-	}
-
-	syncRunningConfig()
-
-	if FlagDebug {
-		fmt.Printf("DEBUG - Current Config: %+v\n", CurrentConfig)
+		fmt.Printf("DEBUG - vpr.settings from environment: %+v\n", vpr.AllSettings())
+		vpr.AllSettings()
 	}
 
 }
@@ -115,28 +115,30 @@ func initConfigSource() {
 func initCurrentConfig() {
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err != nil {
+	if err := vpr.ReadInConfig(); err != nil {
 		if FlagDebug {
-			fmt.Println("Could not find config file!")
+			fmt.Println("initCurrentConfig() - Could not find config file!")
 		}
-		bootstrapConfigFile()
+		newConfigFile()
+		//bootstrapConfigFile()
 	}
 
-	if CurrentConfig.OrgID == 0 {
-		configureDefaultOrganization()
-	}
+	if flagSetDefaults {
+		if vpr.GetInt("org_id") == 0 {
+			configureDefaultOrganization()
+		}
 
-	if CurrentConfig.SSHKeySetId == 0 {
-		fmt.Println("Default SSH keys not set. Configuring...")
-		setDefaultSSHKey()
-	}
+		if vpr.GetInt("ssh_keyset") == 0 {
+			fmt.Println("Default SSH keys not set. Configuring...")
+			setDefaultSSHKey()
+		}
 
-	if CurrentConfig.Provider == "" {
-		configSet("provider", "gce")
-	}
+		if vpr.GetString("provider") == "" {
+			configSet("provider", "gce")
+		}
 
-	if CurrentConfig.ProviderKeySetID == 0 {
-		setDefaultProviderKey(CurrentConfig.Provider)
+		if vpr.GetInt("provider_keyset_id") == 0 {
+			setDefaultProviderKey(vpr.GetString("provider"))
+		}
 	}
-
 }

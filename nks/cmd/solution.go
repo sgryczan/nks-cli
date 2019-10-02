@@ -8,6 +8,7 @@ import (
 
 	nks "github.com/NetApp/nks-sdk-go/nks"
 	"github.com/spf13/cobra"
+	vpr "github.com/spf13/viper"
 	models "gitlab.com/sgryczan/nks-cli/nks/models"
 )
 
@@ -24,8 +25,10 @@ var listSolutionsCmd = &cobra.Command{
 	Aliases: []string{"li"},
 	Short:   "list solutions",
 	Run: func(cmd *cobra.Command, args []string) {
-		clusterId := CurrentConfig.ClusterId
-		orgId := CurrentConfig.OrgID
+		checkDefaultOrg()
+
+		clusterId := vpr.GetInt("cluster_id")
+		orgId := vpr.GetInt("org_id")
 		if flagClusterId != 0 {
 			clusterId = flagClusterId
 		}
@@ -61,15 +64,17 @@ var deploySolutionFromTemplateCmd = &cobra.Command{
 	Aliases: []string{"dt"},
 	Short:   "deploy solution (jenkins)",
 	Run: func(cmd *cobra.Command, args []string) {
+		checkDefaultOrg()
+
 		name := "jenkins"
 		fmt.Printf("creating solution %s...\n", name)
-		cid := CurrentConfig.ClusterId
+		cid := vpr.GetInt("cluster_id")
 
 		if flagClusterId != 0 {
 			cid = flagClusterId
 		}
 
-		s, err := createSolutionFromTemplate(name, CurrentConfig.OrgID, cid)
+		s, err := createSolutionFromTemplate(name, vpr.GetInt("org_id"), cid)
 
 		if err != nil {
 			fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
@@ -84,6 +89,7 @@ var deploySolutionFromRepositoryCmd = &cobra.Command{
 	Aliases: []string{"new", "dep"},
 	Short:   "deploy an imported chart",
 	Run: func(cmd *cobra.Command, args []string) {
+		checkDefaultOrg()
 
 		repoName := flagSolutionRepoName
 
@@ -91,7 +97,7 @@ var deploySolutionFromRepositoryCmd = &cobra.Command{
 			fmt.Printf("creating solution %s...\n", repoName)
 		}
 
-		cid := CurrentConfig.ClusterId
+		cid := vpr.GetInt("cluster_id")
 
 		if flagClusterId != 0 {
 			cid = flagClusterId
@@ -106,7 +112,7 @@ var deploySolutionFromRepositoryCmd = &cobra.Command{
 		if FlagDebug {
 			fmt.Printf("Converting Repositiory:\n %+v\n", repo)
 		}
-		s, err := createSolutionFromRepository(repo, repoName, CurrentConfig.OrgID, cid)
+		s, err := createSolutionFromRepository(repo, repoName, vpr.GetInt("org_id"), cid)
 
 		if err != nil {
 			fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
@@ -121,8 +127,10 @@ var deleteSolutionsCmd = &cobra.Command{
 	Aliases: []string{"rm", "del"},
 	Short:   "delete solution",
 	Run: func(cmd *cobra.Command, args []string) {
-		clusterId := CurrentConfig.ClusterId
-		orgId := CurrentConfig.OrgID
+		checkDefaultOrg()
+
+		clusterId := vpr.GetInt("cluster_id")
+		orgId := vpr.GetInt("org_id")
 		if flagClusterId != 0 {
 			clusterId = flagClusterId
 		}
@@ -199,12 +207,12 @@ func init() {
 	solutionsCmd.AddCommand(deleteSolutionsCmd)
 
 	deploySolutionFromRepositoryCmd.Flags().StringVarP(&flagSolutionRepoName, "name", "n", "demo", "Name of target repository")
-	deploySolutionFromTemplateCmd.Flags().IntVarP(&flagClusterId, "cluster-id", "c", CurrentConfig.ClusterId, "ID of target cluster")
+	deploySolutionFromTemplateCmd.Flags().IntVarP(&flagClusterId, "cluster-id", "c", vpr.GetInt("cluster_id"), "ID of target cluster")
 	deploySolutionFromTemplateCmd.Flags().StringVarP(&flagSolutionName, "name", "n", "jenkins", "Name of solution template")
 
-	listSolutionsCmd.Flags().IntVarP(&flagClusterId, "cluster-id", "c", CurrentConfig.ClusterId, "ID of target cluster")
+	listSolutionsCmd.Flags().IntVarP(&flagClusterId, "cluster-id", "c", vpr.GetInt("cluster_id"), "ID of target cluster")
 
-	deleteSolutionsCmd.Flags().IntVarP(&flagClusterId, "cluster-id", "c", CurrentConfig.ClusterId, "ID of target cluster")
+	deleteSolutionsCmd.Flags().IntVarP(&flagClusterId, "cluster-id", "c", vpr.GetInt("cluster_id"), "ID of target cluster")
 	deleteSolutionsCmd.Flags().IntVarP(&flagSolutionId, "solution-id", "s", 0, "ID of solution")
 	e := deleteSolutionsCmd.MarkFlagRequired("solution-id")
 	check(e)

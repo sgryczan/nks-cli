@@ -10,6 +10,7 @@ import (
 	models "gitlab.com/sgryczan/nks-cli/nks/models"
 
 	"github.com/spf13/cobra"
+	vpr "github.com/spf13/viper"
 )
 
 var flagCreateRepositorySourceType string
@@ -30,53 +31,11 @@ var listRepositoryCmd = &cobra.Command{
 	Short:   "list custom repositories",
 	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		checkDefaultOrg()
+
 		repos := listRepositories()
 		printRepositories(repos)
 	},
-}
-
-func listRepositories() []models.Repository {
-	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", CurrentConfig.OrgID)
-	res, err := httpRequest("GET", url)
-	check(err)
-
-	data := []models.Repository{}
-
-	err = json.Unmarshal(res, &data)
-	check(err)
-
-	return data
-}
-
-func GetRepositoryByName(name string, debug bool) (models.Repository, error) {
-	var err error
-	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", CurrentConfig.OrgID)
-	res, err := httpRequest("GET", url)
-	check(err)
-
-	repositories := []models.Repository{}
-
-	err = json.Unmarshal(res, &repositories)
-	check(err)
-
-	for _, repo := range repositories {
-
-		if debug {
-			fmt.Printf("GetRepositoryByName() - Checking repository %s\n", name)
-		}
-		if repo.Name == name {
-			if debug {
-				fmt.Printf("GetRepositoryByName() - Matched repository %s\n", name)
-			}
-			return repo, err
-		}
-	}
-	if FlagDebug {
-		fmt.Printf("GetRepositoryByName() - Failed to match repository %s\n", name)
-	}
-	r := models.Repository{}
-	err = fmt.Errorf("Failed to match repository - %s", name)
-	return r, err
 }
 
 var createRepositoryCmd = &cobra.Command{
@@ -85,6 +44,8 @@ var createRepositoryCmd = &cobra.Command{
 	Short:   "create a custom chart repo",
 	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		checkDefaultOrg()
+
 		if strings.HasPrefix(flagRepositoryURL, "github.com") {
 			flagRepositoryURL = fmt.Sprintf("https://%s", flagRepositoryURL)
 		}
@@ -117,13 +78,70 @@ var createRepositoryCmd = &cobra.Command{
 	},
 }
 
+var deleteRepositoryCmd = &cobra.Command{
+	Use:     "delete",
+	Aliases: []string{"rm", "del", "remove"},
+	Short:   "delete a custom chart repo",
+	Long:    ``,
+	Run: func(cmd *cobra.Command, args []string) {
+		checkDefaultOrg()
+
+		deleteRepository(flagRepositoryID)
+		printRepositories(listRepositories())
+	},
+}
+
+func listRepositories() []models.Repository {
+	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", vpr.GetInt("org_id"))
+	res, err := httpRequest("GET", url)
+	check(err)
+
+	data := []models.Repository{}
+
+	err = json.Unmarshal(res, &data)
+	check(err)
+
+	return data
+}
+
+func GetRepositoryByName(name string, debug bool) (models.Repository, error) {
+	var err error
+	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", vpr.GetInt("org_id"))
+	res, err := httpRequest("GET", url)
+	check(err)
+
+	repositories := []models.Repository{}
+
+	err = json.Unmarshal(res, &repositories)
+	check(err)
+
+	for _, repo := range repositories {
+
+		if debug {
+			fmt.Printf("GetRepositoryByName() - Checking repository %s\n", name)
+		}
+		if repo.Name == name {
+			if debug {
+				fmt.Printf("GetRepositoryByName() - Matched repository %s\n", name)
+			}
+			return repo, err
+		}
+	}
+	if FlagDebug {
+		fmt.Printf("GetRepositoryByName() - Failed to match repository %s\n", name)
+	}
+	r := models.Repository{}
+	err = fmt.Errorf("Failed to match repository - %s", name)
+	return r, err
+}
+
 var flagRepositoryName string
 var flagRepositorySource string
 var flagRepositoryURL string
 var flagRepositoryID int
 
 func checkRepository(i models.CheckRepositoryInput) (*models.CheckRepositoryResponse, error) {
-	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos/check", CurrentConfig.OrgID)
+	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos/check", vpr.GetInt("org_id"))
 	b, err := json.Marshal(i)
 	check(err)
 
@@ -141,7 +159,7 @@ func checkRepository(i models.CheckRepositoryInput) (*models.CheckRepositoryResp
 }
 
 func createRepository(i models.CreateRepoInput) (*models.RepositoryS, error) {
-	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", CurrentConfig.OrgID)
+	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", vpr.GetInt("org_id"))
 	if FlagDebug {
 		fmt.Printf("createRepository() - URL (pre-marshal) : %s\n", url)
 	}
@@ -168,19 +186,8 @@ func createRepository(i models.CreateRepoInput) (*models.RepositoryS, error) {
 	return &data, respErr
 }
 
-var deleteRepositoryCmd = &cobra.Command{
-	Use:     "delete",
-	Aliases: []string{"rm", "del", "remove"},
-	Short:   "delete a custom chart repo",
-	Long:    ``,
-	Run: func(cmd *cobra.Command, args []string) {
-		deleteRepository(flagRepositoryID)
-		printRepositories(listRepositories())
-	},
-}
-
 func deleteRepository(repoId int) error {
-	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos/%d", CurrentConfig.OrgID, repoId)
+	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos/%d", vpr.GetInt("org_id"), repoId)
 
 	_, err := httpRequest("DELETE", url)
 	check(err)

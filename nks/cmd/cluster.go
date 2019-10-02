@@ -13,7 +13,7 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	vpr "github.com/spf13/viper"
 	models "gitlab.com/sgryczan/nks-cli/nks/models"
 )
 
@@ -29,8 +29,8 @@ var deleteClusterIDf int
 
 var gceDefaults = map[string]interface{}{
 	// Name is implied
-	"Provider":          &CurrentConfig.Provider,
-	"ProviderKey":       &CurrentConfig.ProviderKeySetID,
+	"Provider":          vpr.GetString("provider"),
+	"ProviderKey":       vpr.GetString("gce_keyset"),
 	"MasterCount":       1,
 	"MasterSize":        "n1-standard-1",
 	"WorkerCount":       2,
@@ -42,7 +42,7 @@ var gceDefaults = map[string]interface{}{
 	"EtcdType":          "self_hosted",
 	"Platform":          "coreos",
 	"Channel":           "stable",
-	"SSHKeySet":         &CurrentConfig.SSHKeySetId,
+	"SSHKeySet":         vpr.GetInt("ssh_keyset"),
 	"Solutions":         []nks.Solution{nks.Solution{Solution: "helm_tiller"}},
 	//"ProviderSubnetID":    "__new__",
 	//"ProviderSubnetCidr":  "172.23.1.0/24",
@@ -54,7 +54,7 @@ var hciDefaults = map[string]interface{}{
 	// Name is implied
 	"Provider":    "hci",
 	"ProviderKey": 63207,
-	"Workspace":   22022,
+	"WorkspaceID": 22022,
 
 	"MasterCount":           1,
 	"MasterSize":            "m",
@@ -73,12 +73,14 @@ var hciDefaults = map[string]interface{}{
 	"KubernetesVersion": "v1.14.3",
 	"RbacEnabled":       true,
 	"DashboardEnabled":  true,
+	"K8sPodCIDR":        "10.2.0.0",
+	"K8sServiceCIDR":    "10.3.0.0",
 	"EtcdType":          "classic",
 	"Platform":          "debian",
 	"Channel":           "stable",
 	"Zone":              "",
 	"Config":            map[string]bool{"enable_experimental_features": true},
-	"SSHKeySet":         &CurrentConfig.SSHKeySetId,
+	"SSHKeySet":         vpr.GetInt("ssh_keyset"),
 	"Solutions":         []nks.Solution{nks.Solution{Solution: "helm_tiller"}},
 	"Features":          []string{},
 	"MinNodeCount":      nil,
@@ -105,6 +107,8 @@ var createClusterCmd = &cobra.Command{
 	Short: "deploy a new cluster",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		checkDefaultOrg()
+
 		provider := "gce"
 		if flagProviderName != "" {
 			provider = flagProviderName
@@ -136,7 +140,7 @@ var createClusterCmd = &cobra.Command{
 		check(err)
 		printClusters([]nks.Cluster{newCluster})
 
-		if CurrentConfig.ClusterId == 0 {
+		if vpr.GetInt("cluster_id") == 0 {
 			setCluster(newCluster.ID)
 		}
 
@@ -149,6 +153,8 @@ var deleteClusterCmd = &cobra.Command{
 	Short:   "delete a cluster",
 	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		checkDefaultOrg()
+
 		err := deleteClusterByID(deleteClusterIDf)
 		check(err)
 	},
@@ -159,6 +165,8 @@ var listClustersCmd = &cobra.Command{
 	Aliases: []string{"l", "li"},
 	Short:   "list clusters",
 	Run: func(cmd *cobra.Command, args []string) {
+		checkDefaultOrg()
+
 		c := &([]nks.Cluster{})
 		var err error
 
@@ -175,7 +183,7 @@ var listClustersCmd = &cobra.Command{
 
 		}
 		if len(*c) > 0 {
-			if CurrentConfig.ClusterId == 0 {
+			if vpr.GetInt("cluster_id") == 0 {
 				setCluster((*c)[0].ID)
 			}
 		}
@@ -189,7 +197,9 @@ var getClustersCmd = &cobra.Command{
 	Aliases: []string{"cls", "clusters"},
 	Short:   "get cluster details",
 	Run: func(cmd *cobra.Command, args []string) {
-		i := CurrentConfig.ClusterId
+		checkDefaultOrg()
+
+		i := vpr.GetInt("cluster_id")
 		if getClusterId != 0 {
 			i = getClusterId
 		}
@@ -215,7 +225,7 @@ func printClusters(cs []nks.Cluster) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
 	fmt.Fprintf(w, "NAME\tID\tPROVIDER\tNODES\tK8s_VERSION\tSTATE\t\n")
 	for _, c := range cs {
-		if c.ID == CurrentConfig.ClusterId {
+		if c.ID == vpr.GetInt("cluster_id") {
 			fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v (default)\t\n", c.Name, c.ID, c.Provider, c.NodeCount, c.KubernetesVersion, c.State)
 		} else {
 			fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\t\n", c.Name, c.ID, c.Provider, c.NodeCount, c.KubernetesVersion, c.State)
@@ -226,7 +236,7 @@ func printClusters(cs []nks.Cluster) {
 }
 
 func getClusters() (*[]nks.Cluster, error) {
-	o := CurrentConfig.OrgID
+	o := vpr.GetInt("org_id")
 
 	if FlagDebug {
 		fmt.Printf("Debug - getClusters(%d)\n", o)
@@ -245,7 +255,7 @@ func getClusters() (*[]nks.Cluster, error) {
 }
 
 func getAllClusters() (*[]nks.Cluster, error) {
-	o, err := strconv.Atoi(viper.GetString("org_id"))
+	o, err := strconv.Atoi(vpr.GetString("org_id"))
 	check(err)
 
 	cls, err := SDKClient.GetAllClusters(o)
@@ -256,7 +266,7 @@ func getAllClusters() (*[]nks.Cluster, error) {
 }
 
 func getClusterByID(clusterId int) (*nks.Cluster, error) {
-	o, err := strconv.Atoi(viper.GetString("org_id"))
+	o, err := strconv.Atoi(vpr.GetString("org_id"))
 	check(err)
 
 	cl, err := SDKClient.GetCluster(o, clusterId)
@@ -268,9 +278,9 @@ func getClusterByID(clusterId int) (*nks.Cluster, error) {
 
 func setClusterKubeConfig(clusterId int) {
 
-	kubeConfig, err := SDKClient.GetKubeConfig(CurrentConfig.OrgID, CurrentConfig.ClusterId)
+	kubeConfig, err := SDKClient.GetKubeConfig(vpr.GetInt("org_id"), vpr.GetInt("cluster_id"))
 	if err != nil {
-		fmt.Printf("There was an error retrieving config for cluster %d: \n\t%v\n", CurrentConfig.ClusterId, err)
+		fmt.Printf("There was an error retrieving config for cluster %d: \n\t%v\n", vpr.GetInt("cluster_id"), err)
 	}
 	home, err := homedir.Dir()
 	//fmt.Printf("Setting kubeconfig to cluster %d", clusterId)
@@ -286,7 +296,7 @@ func setClusterKubeConfig(clusterId int) {
 }
 
 func deleteClusterByID(clusterId int) error {
-	o := CurrentConfig.OrgID
+	o := vpr.GetInt("org_id")
 
 	var err error
 
@@ -297,7 +307,7 @@ func deleteClusterByID(clusterId int) error {
 	}
 	check(err)
 
-	if clusterId == CurrentConfig.ClusterId {
+	if clusterId == vpr.GetInt("cluster_id") {
 		setClusterID(0)
 	}
 
@@ -308,7 +318,7 @@ func deleteClusterByID(clusterId int) error {
 }
 
 func createCluster(cl models.CreateClusterInput) (nks.Cluster, error) {
-	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/clusters", CurrentConfig.OrgID)
+	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/clusters", vpr.GetInt("org_id"))
 	b, err := json.Marshal(cl)
 	check(err)
 	if FlagDebug {

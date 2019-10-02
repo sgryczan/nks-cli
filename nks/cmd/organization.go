@@ -8,6 +8,7 @@ import (
 
 	nks "github.com/NetApp/nks-sdk-go/nks"
 	"github.com/spf13/cobra"
+	vpr "github.com/spf13/viper"
 )
 
 var organizationCmd = &cobra.Command{
@@ -20,11 +21,25 @@ var organizationCmd = &cobra.Command{
 	//},
 }
 
+func checkDefaultOrg() {
+	if FlagDebug {
+		fmt.Printf("Debug - checkDefaultOrg()")
+	}
+	if vpr.GetInt("org_id") == 0 {
+		fmt.Printf("No default organization set. Specify an organization, or set a default one with `nks config set org -i <id>'\n")
+		os.Exit(1)
+	}
+}
+
 func printOrgs(o *[]nks.Organization) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
 	fmt.Fprintf(w, "NAME\tID\t\n")
 	for _, org := range *o {
-		fmt.Fprintf(w, "%s\t%d\t\n", org.Name, org.ID)
+		if org.ID == vpr.GetInt("org_id") {
+			fmt.Fprintf(w, "%s\t%d (current)\t\n", org.Name, org.ID)
+		} else {
+			fmt.Fprintf(w, "%s\t%d\t\n", org.Name, org.ID)
+		}
 	}
 	w.Flush()
 }

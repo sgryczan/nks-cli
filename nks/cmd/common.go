@@ -16,6 +16,7 @@ import (
 var flagClusterId int
 var flagSolutionId int
 var flagOrganizationId int
+var flagWorkspaceId int
 var flagSolutionName string
 var flagSolutionRepoName string
 var flagSolutionReleaseName string
@@ -23,6 +24,9 @@ var flagForce bool
 var flagGenerateCompletionBash bool
 var flagGenerateCompletionZsh bool
 var FlagDebug bool
+var flagSetDefaults bool
+
+var ConfigFound bool
 
 var SDKClient *nks.APIClient
 
