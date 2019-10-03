@@ -24,7 +24,7 @@ var organizationCmd = &cobra.Command{
 
 func checkDefaultOrg() {
 	if FlagDebug {
-		fmt.Printf("Debug - checkDefaultOrg()")
+		fmt.Printf("Debug - checkDefaultOrg()\n")
 	}
 	if vpr.GetInt("org_id") == 0 {
 		fmt.Printf("No default organization set. Specify an organization, or set a default one with `nks config set org -i <id>'\n")

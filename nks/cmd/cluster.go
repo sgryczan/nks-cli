@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strconv"
 	"text/tabwriter"
+	"time"
 
 	nks "github.com/NetApp/nks-sdk-go/nks"
 	homedir "github.com/mitchellh/go-homedir"
@@ -141,7 +142,7 @@ var createClusterCmd = &cobra.Command{
 		printClusters([]nks.Cluster{newCluster})
 
 		if vpr.GetInt("cluster_id") == 0 {
-			setCluster(newCluster.ID)
+			setClusterAsCurrent(newCluster.ID)
 		}
 
 	},
@@ -184,7 +185,7 @@ var listClustersCmd = &cobra.Command{
 		}
 		if len(*c) > 0 {
 			if vpr.GetInt("cluster_id") == 0 {
-				setCluster((*c)[0].ID)
+				setClusterAsCurrent((*c)[0].ID)
 			}
 		}
 
@@ -242,10 +243,12 @@ func getClusters() (*[]nks.Cluster, error) {
 		fmt.Printf("Debug - getClusters(%d)\n", o)
 	}
 
+	start := time.Now()
 	cls, err := SDKClient.GetClusters(o)
+	elapsed := time.Since(start)
 
 	if FlagDebug {
-		fmt.Printf("Debug - getClusters() - completed\n")
+		fmt.Printf("Debug - getClusters() - completed in %v\n", elapsed)
 		fmt.Printf("Debug - getClusters() - response: %v\n", cls)
 	}
 
@@ -277,8 +280,11 @@ func getClusterByID(clusterId int) (*nks.Cluster, error) {
 }
 
 func setClusterKubeConfig(clusterId int) {
+	if FlagDebug {
+		fmt.Printf("Debug - setClusterKubeConfig(%d)\n", clusterId)
+	}
 
-	kubeConfig, err := SDKClient.GetKubeConfig(vpr.GetInt("org_id"), vpr.GetInt("cluster_id"))
+	kubeConfig, err := SDKClient.GetKubeConfig(vpr.GetInt("org_id"), clusterId)
 	if err != nil {
 		fmt.Printf("There was an error retrieving config for cluster %d: \n\t%v\n", vpr.GetInt("cluster_id"), err)
 	}

@@ -52,8 +52,6 @@ func init() {
 
 	rootCmd.PersistentFlags().BoolVarP(&FlagDebug, "debug", "", false, "Debug logging")
 	rootCmd.PersistentFlags().MarkHidden("debug")
-
-	rootCmd.PersistentFlags().BoolVarP(&flagSetDefaults, "set-defaults", "", false, "Configure default values if possible")
 }
 
 func initClient() {
@@ -113,6 +111,9 @@ func initConfigSource() {
 }
 
 func initCurrentConfig() {
+	if FlagDebug {
+		fmt.Println("Debug - initCurrentConfig()")
+	}
 
 	// If a config file is found, read it in.
 	if err := vpr.ReadInConfig(); err != nil {
@@ -121,24 +122,5 @@ func initCurrentConfig() {
 		}
 		newConfigFile()
 		//bootstrapConfigFile()
-	}
-
-	if flagSetDefaults {
-		if vpr.GetInt("org_id") == 0 {
-			configureDefaultOrganization()
-		}
-
-		if vpr.GetInt("ssh_keyset") == 0 {
-			fmt.Println("Default SSH keys not set. Configuring...")
-			setDefaultSSHKey()
-		}
-
-		if vpr.GetString("provider") == "" {
-			configSet("provider", "gce")
-		}
-
-		if vpr.GetInt("provider_keyset_id") == 0 {
-			setDefaultProviderKey(vpr.GetString("provider"))
-		}
 	}
 }

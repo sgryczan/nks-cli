@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	nks "github.com/NetApp/nks-sdk-go/nks"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	vpr "github.com/spf13/viper"
 )
 
@@ -57,7 +57,7 @@ var listConfigCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("Current configuration:\n\n")
 
-		for _, k := range viper.AllKeys() {
+		for _, k := range vpr.AllKeys() {
 			v := vpr.Get(k)
 			if v != nil {
 				fmt.Printf("%s = %v\n",
@@ -98,7 +98,7 @@ var configSetClusterCmd = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		setCluster(flagOrganizationId)
+		setClusterAsCurrent(flagClusterId)
 	},
 }
 
@@ -125,16 +125,20 @@ var configSetWorkspaceCmd = &cobra.Command{
 	},
 }
 
-func setCluster(clusterId int) {
-	vpr.Set("cluster_id", clusterId)
+func setClusterAsCurrent(clusterId int) {
+	if FlagDebug {
+		fmt.Printf("Debug - setClusterAsCurrent(%d)\n", clusterId)
+	}
 	setClusterKubeConfig(clusterId)
+	setClusterID(clusterId)
 }
 
 func setClusterID(clusterId int) {
 	if FlagDebug {
-		fmt.Printf("Debug - setClusterID(%d)", clusterId)
+		fmt.Printf("Debug - setClusterID(%d)\n", clusterId)
 	}
 	vpr.Set("cluster_id", clusterId)
+	vpr.WriteConfig()
 }
 
 func setOrgID(orgID int) {
@@ -188,13 +192,24 @@ func newConfigFile() error {
 
 	createConfigFile(fmt.Sprintf("%s/.nks.yaml", home), token)
 
-	//configureDefaultOrganization()
+	if flagSetDefaults {
+		if vpr.GetInt("org_id") == 0 {
+			configureDefaultOrganization()
+		}
 
-	//fmt.Println("Setting Provider Key...")
-	//setDefaultProviderKey(vpr.GetString("provider"))
+		if vpr.GetInt("ssh_keyset") == 0 {
+			fmt.Println("Default SSH keys not set. Configuring...")
+			setDefaultProviderKey("user_ssh")
+		}
 
-	//fmt.Println("Setting SSH Key...")
-	//setSSHKey(vpr.GetString("provider"))
+		//if vpr.GetString("provider") == "" {
+		//	configSet("provider", "gce")
+		//}
+
+		//if vpr.GetInt("provider_keyset_id") == 0 {
+		//	setDefaultProviderKey(vpr.GetString("provider"))
+		//}
+	}
 
 	// Search config in home directory with name ".nks" (without extension).
 	vpr.AddConfigPath(home)
@@ -225,39 +240,61 @@ func createConfigFile(filename string, token string) error {
 }
 
 func configureDefaultOrganization() {
+
 	if FlagDebug {
 		fmt.Println("Debug - configureDefaultOrganization()")
 	}
-	o, err := getDefaultOrg()
+
+	profile, err := SDKClient.GetUserProfile()
+	check(err)
+
+	org, err := SDKClient.GetUserProfileDefaultOrg(&profile[0])
+
 	if err != nil {
 		fmt.Println("Could not get default organization")
 	} else {
 		fmt.Println("Setting default org..")
-		setConfigDefaultOrg(o)
+		vpr.Set("org_id", org)
+		vpr.WriteConfig()
 	}
 }
 
-func setConfigDefaultOrg(o nks.Organization) {
-	vpr.Set("org_id", o.ID)
+func setDefaultProviderKey(prov string) {
+	var provider_key string
 
-}
+	if FlagDebug {
+		fmt.Printf("Debug - setDefaultProviderKey(%v)\n", prov)
+	}
 
-func setDefaultProviderKey(p string) {
-	kss, err := getKeySets()
+	switch prov {
+	case "aws":
+		provider_key = fmt.Sprintf("%s_keyset", prov)
+	case "gce":
+		provider_key = fmt.Sprintf("%s_keyset", prov)
+	case "gke":
+		provider_key = fmt.Sprintf("%s_keyset", prov)
+	case "azr":
+		provider_key = fmt.Sprintf("%s_keyset", prov)
+	case "eks":
+		provider_key = fmt.Sprintf("%s_keyset", prov)
+	case "user_ssh":
+		provider_key = "ssh_keyset"
+	default:
+		fmt.Printf("Error - '%s' is not a known provider\n", prov)
+		os.Exit(1)
+	}
+
+	profile, err := SDKClient.GetUserProfile()
 	check(err)
-	v := []nks.Keyset{}
 
-	for _, ks := range *kss {
-		if ks.Entity == p {
-			v = append(v, ks)
-		}
+	ks, err := SDKClient.GetUserProfileKeysetID(&profile[0], prov)
+
+	if err != nil {
+		fmt.Println("Could not get default keyset")
+	} else {
+		vpr.Set(provider_key, ks)
+		vpr.WriteConfig()
 	}
-
-	if len(v) == 0 {
-		fmt.Printf("no keysets found for provider %s!\n", p)
-	}
-
-	vpr.Set("provider_keyset_id", v[0].ID)
 
 }
 
@@ -330,4 +367,6 @@ func init() {
 	configSetWorkspaceCmd.Flags().IntVarP(&flagWorkspaceId, "id", "i", 0, "ID of workspace")
 	e = configSetWorkspaceCmd.MarkFlagRequired("id")
 	check(e)
+
+	initConfigCmd.PersistentFlags().BoolVarP(&flagSetDefaults, "set-defaults", "", true, "Configure default values if possible")
 }
