@@ -1,5 +1,5 @@
 GOCMD=go
-GOBUILD=$(GOCMD) build
+GOBUILD=$(GOCMD) build -ldflags "-X gitlab.com/sgryczan/nks-cli/nks/cmd.version=`date -u +%Y%m%d.%H%M%S`"
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
