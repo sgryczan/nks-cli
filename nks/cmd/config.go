@@ -110,6 +110,7 @@ var configSetOrganizationCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		setOrgID(flagOrganizationId)
 		setClusterID(0)
+		clearCurrentKeySets()
 		syncConfigFile()
 	},
 }
@@ -143,7 +144,7 @@ func setClusterID(clusterId int) {
 
 func setOrgID(orgID int) {
 	if FlagDebug {
-		fmt.Printf("Debug - setOrgID(%d)", orgID)
+		fmt.Printf("Debug - setOrgID(%d)\n", orgID)
 	}
 	vpr.Set("org_id", orgID)
 }
@@ -160,6 +161,26 @@ var configSetURLCmd = &cobra.Command{
 		vpr.Set("api_url", args[0])
 
 	},
+}
+
+func clearCurrentKeySets() {
+	if FlagDebug {
+		fmt.Println("Debug - clearCurrentKeySets()")
+	}
+
+	keysets := []string{
+		"hci_keyset",
+		"aws_keyset",
+		"gce_keyset",
+		"gke_keyset",
+		"azr_keyset",
+		"eks_keyset",
+		"ssh_keyset",
+	}
+
+	for _, k := range keysets {
+		vpr.Set(k, 0)
+	}
 }
 
 func syncConfigFile() {
@@ -245,6 +266,9 @@ func configureDefaultOrganization() {
 		fmt.Println("Debug - configureDefaultOrganization()")
 	}
 
+	if SDKClient.Token == "" {
+		initClient()
+	}
 	profile, err := SDKClient.GetUserProfile()
 	check(err)
 
@@ -287,11 +311,14 @@ func setDefaultProviderKey(prov string) {
 	profile, err := SDKClient.GetUserProfile()
 	check(err)
 
-	ks, err := SDKClient.GetUserProfileKeysetID(&profile[0], prov)
+	ks, err := GetUserProfileKeysetID(&profile[0], vpr.GetInt("org_id"), prov)
 
 	if err != nil {
 		fmt.Println("Could not get default keyset")
 	} else {
+		if FlagDebug {
+			fmt.Printf("Debug - setDefaultProviderKey(%v) - Setting provider key %s to %d\n", prov, provider_key, ks)
+		}
 		vpr.Set(provider_key, ks)
 		vpr.WriteConfig()
 	}

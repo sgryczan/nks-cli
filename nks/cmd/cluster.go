@@ -114,8 +114,35 @@ var createClusterCmd = &cobra.Command{
 		if flagProviderName != "" {
 			provider = flagProviderName
 		}
+	
+		provider_ks_setting := fmt.Sprintf("%s_keyset", provider)
+
+		if FlagDebug {
+			fmt.Printf("Keyset var for provider %s should be: %s\n", provider, provider_ks_setting)
+		}
+
+		// check user ssh keyset prese
+		for _, keyset := range []string{"user_ssh", provider_ks_setting,} {
+			if ks := vpr.GetInt(keyset); ks == 0 {
+
+				if FlagDebug {
+					fmt.Printf("Debug - No keyset for provider: %s in var: %d. Attempting to set a default\n", provider, ks)
+				}
+	
+				if keyset == "user_ssh" {
+					setDefaultProviderKey(keyset)
+				} else {
+					setDefaultProviderKey(provider)
+				}
+			}
+		}
+		
+
 		template := generateClusterTemplate(provider)
 		template.Name = flagClusterName
+		template.Provider = provider
+		template.ProviderKey = vpr.GetInt(provider_ks_setting)
+		template.SSHKeySet = vpr.GetInt("ssh_keyset")
 		if FlagDebug {
 			fmt.Printf("Template:\n%+v", template)
 		}
