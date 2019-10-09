@@ -25,16 +25,37 @@ var repositoryCmd = &cobra.Command{
 	//},
 }
 
-var listRepositoryCmd = &cobra.Command{
-	Use:     "list",
-	Aliases: []string{"l", "li", "lis"},
+var listRepositoryCustomCmd = &cobra.Command{
+	Use:     "list-custom",
+	Aliases: []string{"lc"},
 	Short:   "list custom repositories",
 	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		checkDefaultOrg()
 
-		repos := listRepositories()
-		printRepositories(repos)
+		repos := listRepositories("custom")
+		for _, r := range repos {
+			printRepositories(repos)
+			fmt.Println("----------")
+			printCharts(r.ChartIndex)
+		}
+	},
+}
+
+var listRepositoryTrustedCmd = &cobra.Command{
+	Use:     "list-trusted",
+	Aliases: []string{"lt"},
+	Short:   "list managed repositories",
+	Long:    ``,
+	Run: func(cmd *cobra.Command, args []string) {
+		checkDefaultOrg()
+
+		repos := listRepositories("trusted")
+		for _, r := range repos {
+			printRepositories(repos)
+			fmt.Println("----------")
+			printCharts(r.ChartIndex)
+		}
 	},
 }
 
@@ -87,21 +108,50 @@ var deleteRepositoryCmd = &cobra.Command{
 		checkDefaultOrg()
 
 		deleteRepository(flagRepositoryID)
-		printRepositories(listRepositories())
+		printRepositories(listRepositories("custom"))
 	},
 }
 
-func listRepositories() []models.Repository {
-	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", vpr.GetInt("org_id"))
-	res, err := httpRequest("GET", url)
+func listRepositories(repoType string) []models.Repository {
+	var url string
+	var res []byte
+	var err error
+
+	if FlagDebug {
+		fmt.Printf("Debug - listRepositories(%s)\n", repoType)
+	}
+
+	if repoType == "custom" {
+		// Get Custom Charts
+		url = fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", vpr.GetInt("org_id"))
+		res, err = httpRequest("GET", url)
+
+		if FlagDebug {
+			fmt.Printf("Debug - listRepositories(%s) - got response: %s\n", repoType, string(res))
+		}
+
+		check(err)
+	} else if repoType == "trusted" {
+		// Get Custom Charts
+		url = fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos/trusted", vpr.GetInt("org_id"))
+		res, err = httpRequest("GET", url)
+
+		if FlagDebug {
+			fmt.Printf("Debug - listRepositories(%s) - got response: %v\n", repoType, string(res))
+		}
+
+		check(err)
+	} else {
+		fmt.Printf("Error - Chart type must be of 'trusted', 'custom', got '%s'", repoType)
+		os.Exit(1)
+	}
+
+	charts := []models.Repository{}
+
+	err = json.Unmarshal(res, &charts)
 	check(err)
 
-	data := []models.Repository{}
-
-	err = json.Unmarshal(res, &data)
-	check(err)
-
-	return data
+	return charts
 }
 
 func GetRepositoryByName(name string, debug bool) (models.Repository, error) {
@@ -204,11 +254,21 @@ func printRepositories(rs []models.Repository) {
 	w.Flush()
 }
 
+func printCharts(chartIndexes []models.ChartIndex) {
+	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
+	fmt.Fprintf(w, "NAME\tVERSION\tPATH\t\n")
+	for _, c := range chartIndexes {
+		fmt.Fprintf(w, "%v\t%v\t%v\t\n", c.Name, c.Version, c.Path)
+	}
+	w.Flush()
+}
+
 func init() {
 	rootCmd.AddCommand(repositoryCmd)
 
 	repositoryCmd.AddCommand(createRepositoryCmd)
-	repositoryCmd.AddCommand(listRepositoryCmd)
+	repositoryCmd.AddCommand(listRepositoryCustomCmd)
+	repositoryCmd.AddCommand(listRepositoryTrustedCmd)
 	repositoryCmd.AddCommand(deleteRepositoryCmd)
 	repositoryCmd.Flags().StringVarP(&flagCreateRepositorySourceType, "type", "t", "github", "repository type")
 

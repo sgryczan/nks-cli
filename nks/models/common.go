@@ -27,7 +27,7 @@ func RepositoryToTemplate(r Repository, releaseName string) *SolutionTemplate {
 		fmt.Printf("Error - Selected repository has no ChartIndexes!\n")
 	}
 	chartName := r.ChartIndex[0].Name
-	chartVersion := r.ChartIndex[0].Chart["version"]
+	chartVersion := r.ChartIndex[0].Chart.Version
 	chartLogo := "/images/k8s-logo-border.ae630e27.png"
 
 	template.Name = chartName

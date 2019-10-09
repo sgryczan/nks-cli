@@ -25,12 +25,28 @@ type Repository struct {
 }
 
 type ChartIndex struct {
-	Name   string            `json:"name"`
-	Sha    string            `json:"sha"`
-	Chart  map[string]string `json:"chart"`
-	Values string            `json:"values"`
-	Path   string            `json:"path"`
-	Spec   map[string]string `json:"spec"`
+	Name    string                 `json:"name"`
+	Sha     string                 `json:"sha"`
+	Chart   Chart                  `json:"Chart"`
+	Values  string                 `json:"values"`
+	Path    string                 `json:"path"`
+	Spec    map[string]interface{} `json:"spec"`
+	Version string                 `json:"version,omitempty"`
+}
+
+type Chart struct {
+	Name        string              `json:"name"`
+	Created     string              `json:"created"`
+	Description string              `json:"description"`
+	AppVersion  string              `json:"appVersion"`
+	Sources     []string            `json:"sources"`
+	Maintainers []map[string]string `json:"maintainers"`
+	Version     string              `json:"version"`
+	URLs        []string            `json:"urls"`
+	Keywords    []string            `json:"keywords"`
+	Home        string              `json:"home"`
+	Digest      string              `json:"digest"`
+	Icon        string              `json:"icon"`
 }
 
 type CheckRepositoryInput struct {
