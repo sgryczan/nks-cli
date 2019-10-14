@@ -59,8 +59,8 @@ func GetOrgs() (*[]nks.Organization, error) {
 
 	if FlagDebug {
 		fmt.Println("Debug - GetOrgs(): sending request")
-
 	}
+
 	start := time.Now()
 	data, err := SDKClient.GetOrganizations()
 	elapsed := time.Since(start)

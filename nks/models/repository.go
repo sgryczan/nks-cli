@@ -38,7 +38,7 @@ type Chart struct {
 	Name        string              `json:"name"`
 	Created     string              `json:"created"`
 	Description string              `json:"description"`
-	AppVersion  string              `json:"appVersion"`
+	AppVersion  interface{}         `json:"appVersion"`
 	Sources     []string            `json:"sources"`
 	Maintainers []map[string]string `json:"maintainers"`
 	Version     string              `json:"version"`

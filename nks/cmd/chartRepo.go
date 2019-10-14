@@ -256,9 +256,9 @@ func printRepositories(rs []models.Repository) {
 
 func printCharts(chartIndexes []models.ChartIndex) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
-	fmt.Fprintf(w, "NAME\tVERSION\tPATH\t\n")
+	fmt.Fprintf(w, "NAME\tDESCRIPTION\tVERSION\tPATH\t\n")
 	for _, c := range chartIndexes {
-		fmt.Fprintf(w, "%v\t%v\t%v\t\n", c.Name, c.Version, c.Path)
+		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t\n", c.Name, c.Chart.Description, c.Chart.AppVersion, c.Path)
 	}
 	w.Flush()
 }
