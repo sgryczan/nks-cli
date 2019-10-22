@@ -82,12 +82,12 @@ var createRepositoryCmd = &cobra.Command{
 
 		input := models.CreateRepoInput{i}
 
-		if FlagDebug {
+		if flagDebug {
 			fmt.Printf("CreateRepository Input: %+v\n", input)
 		}
 
 		n, err := createRepository(input)
-		if FlagDebug {
+		if flagDebug {
 			fmt.Printf("CreateRepository Response: %+v\n", n)
 		}
 		if err != nil {
@@ -117,7 +117,7 @@ func listRepositories(repoType string) []models.Repository {
 	var res []byte
 	var err error
 
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("Debug - listRepositories(%s)\n", repoType)
 	}
 
@@ -126,7 +126,7 @@ func listRepositories(repoType string) []models.Repository {
 		url = fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", vpr.GetInt("org_id"))
 		res, err = httpRequest("GET", url)
 
-		if FlagDebug {
+		if flagDebug {
 			fmt.Printf("Debug - listRepositories(%s) - got response: %s\n", repoType, string(res))
 		}
 
@@ -136,7 +136,7 @@ func listRepositories(repoType string) []models.Repository {
 		url = fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos/trusted", vpr.GetInt("org_id"))
 		res, err = httpRequest("GET", url)
 
-		if FlagDebug {
+		if flagDebug {
 			fmt.Printf("Debug - listRepositories(%s) - got response: %v\n", repoType, string(res))
 		}
 
@@ -154,6 +154,7 @@ func listRepositories(repoType string) []models.Repository {
 	return charts
 }
 
+// GetRepositoryByName returns a custom repository matching a provided name
 func GetRepositoryByName(name string, debug bool) (models.Repository, error) {
 	var err error
 	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", vpr.GetInt("org_id"))
@@ -177,7 +178,7 @@ func GetRepositoryByName(name string, debug bool) (models.Repository, error) {
 			return repo, err
 		}
 	}
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("GetRepositoryByName() - Failed to match repository %s\n", name)
 	}
 	r := models.Repository{}
@@ -210,11 +211,11 @@ func checkRepository(i models.CheckRepositoryInput) (*models.CheckRepositoryResp
 
 func createRepository(i models.CreateRepoInput) (*models.RepositoryS, error) {
 	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos", vpr.GetInt("org_id"))
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("createRepository() - URL (pre-marshal) : %s\n", url)
 	}
 	b, err := json.Marshal(i)
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("createRepository() - input bytes (post-marshal) : %s\n", b)
 	}
 
@@ -222,7 +223,7 @@ func createRepository(i models.CreateRepoInput) (*models.RepositoryS, error) {
 
 	//fmt.Printf("body2: %s\n\n", string(b))
 	res, respErr := httpRequestPost("POST", url, b)
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("createRepository() -  Response: %s\n\n", string(res))
 	}
 
@@ -236,8 +237,8 @@ func createRepository(i models.CreateRepoInput) (*models.RepositoryS, error) {
 	return &data, respErr
 }
 
-func deleteRepository(repoId int) error {
-	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos/%d", vpr.GetInt("org_id"), repoId)
+func deleteRepository(repoID int) error {
+	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/chart-repos/%d", vpr.GetInt("org_id"), repoID)
 
 	_, err := httpRequest("DELETE", url)
 	check(err)

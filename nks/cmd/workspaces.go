@@ -28,8 +28,8 @@ var listWorkspacesCmd = &cobra.Command{
 		checkDefaultOrg()
 
 		o := vpr.GetInt("org_id")
-		if flagOrganizationId != 0 {
-			o = flagOrganizationId
+		if flagOrganizationID != 0 {
+			o = flagOrganizationID
 		}
 		ws, err := listWorkspaces(o)
 		if err != nil {
@@ -41,9 +41,9 @@ var listWorkspacesCmd = &cobra.Command{
 	},
 }
 
-func listWorkspaces(orgId int) ([]nks.Workspace, error) {
+func listWorkspaces(orgID int) ([]nks.Workspace, error) {
 
-	ws, err := SDKClient.GetWorkspaces(orgId)
+	ws, err := SDKClient.GetWorkspaces(orgID)
 	return ws, err
 }
 
@@ -59,5 +59,5 @@ func printWorkspaces(wss []nks.Workspace) {
 func init() {
 	rootCmd.AddCommand(workspacesCmd)
 	workspacesCmd.AddCommand(listWorkspacesCmd)
-	listWorkspacesCmd.Flags().IntVarP(&flagOrganizationId, "organization-id", "i", 0, "Organization ID")
+	listWorkspacesCmd.Flags().IntVarP(&flagOrganizationID, "organization-id", "i", 0, "Organization ID")
 }

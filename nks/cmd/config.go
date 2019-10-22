@@ -8,6 +8,7 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	vpr "github.com/spf13/viper"
+	ext "gitlab.com/sgryczan/nks-cli/nks/extensions"
 )
 
 var configFields = []string{
@@ -98,7 +99,7 @@ var configSetClusterCmd = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		setClusterAsCurrent(flagClusterId)
+		setClusterAsCurrent(flagclusterID)
 	},
 }
 
@@ -108,8 +109,8 @@ var configSetOrganizationCmd = &cobra.Command{
 	Short:   "set default organization",
 	Long:    "",
 	Run: func(cmd *cobra.Command, args []string) {
-		setOrgID(flagOrganizationId)
-		setClusterID(0)
+		setOrgID(flagOrganizationID)
+		setclusterID(0)
 		clearCurrentKeySets()
 		syncConfigFile()
 	},
@@ -121,29 +122,29 @@ var configSetWorkspaceCmd = &cobra.Command{
 	Short:   "set default workspace",
 	Long:    "",
 	Run: func(cmd *cobra.Command, args []string) {
-		setWorkSpaceID(flagWorkspaceId)
+		setWorkSpaceID(flagWorkspaceID)
 		syncConfigFile()
 	},
 }
 
-func setClusterAsCurrent(clusterId int) {
-	if FlagDebug {
-		fmt.Printf("Debug - setClusterAsCurrent(%d)\n", clusterId)
+func setClusterAsCurrent(clusterID int) {
+	if flagDebug {
+		fmt.Printf("Debug - setClusterAsCurrent(%d)\n", clusterID)
 	}
-	setClusterKubeConfig(clusterId)
-	setClusterID(clusterId)
+	setClusterKubeConfig(clusterID)
+	setclusterID(clusterID)
 }
 
-func setClusterID(clusterId int) {
-	if FlagDebug {
-		fmt.Printf("Debug - setClusterID(%d)\n", clusterId)
+func setclusterID(clusterID int) {
+	if flagDebug {
+		fmt.Printf("Debug - setclusterID(%d)\n", clusterID)
 	}
-	vpr.Set("cluster_id", clusterId)
+	vpr.Set("cluster_id", clusterID)
 	vpr.WriteConfig()
 }
 
 func setOrgID(orgID int) {
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("Debug - setOrgID(%d)\n", orgID)
 	}
 	vpr.Set("org_id", orgID)
@@ -164,7 +165,7 @@ var configSetURLCmd = &cobra.Command{
 }
 
 func clearCurrentKeySets() {
-	if FlagDebug {
+	if flagDebug {
 		fmt.Println("Debug - clearCurrentKeySets()")
 	}
 
@@ -184,11 +185,11 @@ func clearCurrentKeySets() {
 }
 
 func syncConfigFile() {
-	if FlagDebug {
+	if flagDebug {
 		fmt.Println("Debug - syncConfigFile()")
 	}
 	if err := vpr.ReadInConfig(); err != nil {
-		if FlagDebug {
+		if flagDebug {
 			fmt.Println("syncConfigFile() - No config file detected. Creating to allow sync.")
 		}
 		newConfigFile()
@@ -197,7 +198,7 @@ func syncConfigFile() {
 }
 
 func newConfigFile() error {
-	if FlagDebug {
+	if flagDebug {
 		fmt.Println("Debug - newConfigFile()")
 	}
 	home, _ := homedir.Dir()
@@ -207,7 +208,7 @@ func newConfigFile() error {
 	if t := vpr.GetString("api_token"); t != "" {
 		token = t
 	} else {
-		token = readApiToken()
+		token = readAPIToken()
 		vpr.Set("api_token", token)
 	}
 
@@ -240,7 +241,7 @@ func newConfigFile() error {
 }
 
 func createConfigFile(filename string, token string) error {
-	if FlagDebug {
+	if flagDebug {
 		fmt.Println("Debug - createConfigFile()")
 	}
 	for _, s := range configFields {
@@ -262,7 +263,7 @@ func createConfigFile(filename string, token string) error {
 
 func configureDefaultOrganization() {
 
-	if FlagDebug {
+	if flagDebug {
 		fmt.Println("Debug - configureDefaultOrganization()")
 	}
 
@@ -284,25 +285,25 @@ func configureDefaultOrganization() {
 }
 
 func setDefaultProviderKey(prov string) {
-	var provider_key string
+	var providerKey string
 
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("Debug - setDefaultProviderKey(%v)\n", prov)
 	}
 
 	switch prov {
 	case "aws":
-		provider_key = fmt.Sprintf("%s_keyset", prov)
+		providerKey = fmt.Sprintf("%s_keyset", prov)
 	case "gce":
-		provider_key = fmt.Sprintf("%s_keyset", prov)
+		providerKey = fmt.Sprintf("%s_keyset", prov)
 	case "gke":
-		provider_key = fmt.Sprintf("%s_keyset", prov)
+		providerKey = fmt.Sprintf("%s_keyset", prov)
 	case "azr":
-		provider_key = fmt.Sprintf("%s_keyset", prov)
+		providerKey = fmt.Sprintf("%s_keyset", prov)
 	case "eks":
-		provider_key = fmt.Sprintf("%s_keyset", prov)
+		providerKey = fmt.Sprintf("%s_keyset", prov)
 	case "user_ssh":
-		provider_key = "ssh_keyset"
+		providerKey = "ssh_keyset"
 	default:
 		fmt.Printf("Error - '%s' is not a known provider\n", prov)
 		os.Exit(1)
@@ -311,15 +312,15 @@ func setDefaultProviderKey(prov string) {
 	profile, err := SDKClient.GetUserProfile()
 	check(err)
 
-	ks, err := GetUserProfileKeysetID(&profile[0], vpr.GetInt("org_id"), prov)
+	ks, err := ext.GetUserProfileKeysetID(&profile[0], vpr.GetInt("org_id"), prov)
 
 	if err != nil {
 		fmt.Println("Could not get default keyset")
 	} else {
-		if FlagDebug {
-			fmt.Printf("Debug - setDefaultProviderKey(%v) - Setting provider key %s to %d\n", prov, provider_key, ks)
+		if flagDebug {
+			fmt.Printf("Debug - setDefaultProviderKey(%v) - Setting provider key %s to %d\n", prov, providerKey, ks)
 		}
-		vpr.Set(provider_key, ks)
+		vpr.Set(providerKey, ks)
 		vpr.WriteConfig()
 	}
 
@@ -364,7 +365,7 @@ func setSSHKey(s string) {
 }
 
 func bootstrapConfigFile() {
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("Debug - bootstrapConfigFile()\n")
 	}
 	configBootStrap = true
@@ -383,15 +384,15 @@ func init() {
 	configSetCmd.AddCommand(configSetOrganizationCmd)
 	configSetCmd.AddCommand(configSetWorkspaceCmd)
 
-	configSetClusterCmd.Flags().IntVarP(&flagClusterId, "id", "i", vpr.GetInt("cluster_id"), "ID of target cluster")
+	configSetClusterCmd.Flags().IntVarP(&flagclusterID, "id", "i", vpr.GetInt("cluster_id"), "ID of target cluster")
 	e := configSetClusterCmd.MarkFlagRequired("id")
 	check(e)
 
-	configSetOrganizationCmd.Flags().IntVarP(&flagOrganizationId, "id", "i", 0, "ID of organization")
+	configSetOrganizationCmd.Flags().IntVarP(&flagOrganizationID, "id", "i", 0, "ID of organization")
 	e = configSetOrganizationCmd.MarkFlagRequired("id")
 	check(e)
 
-	configSetWorkspaceCmd.Flags().IntVarP(&flagWorkspaceId, "id", "i", 0, "ID of workspace")
+	configSetWorkspaceCmd.Flags().IntVarP(&flagWorkspaceID, "id", "i", 0, "ID of workspace")
 	e = configSetWorkspaceCmd.MarkFlagRequired("id")
 	check(e)
 

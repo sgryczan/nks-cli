@@ -23,7 +23,7 @@ var organizationCmd = &cobra.Command{
 }
 
 func checkDefaultOrg() {
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("Debug - checkDefaultOrg()\n")
 	}
 	if vpr.GetInt("org_id") == 0 {
@@ -34,7 +34,7 @@ func checkDefaultOrg() {
 
 func printOrgs(o *[]nks.Organization) {
 
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("Debug - printOrgs()\n")
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
@@ -49,15 +49,16 @@ func printOrgs(o *[]nks.Organization) {
 	w.Flush()
 }
 
+// GetOrgs returns all organizations
 func GetOrgs() (*[]nks.Organization, error) {
 	if SDKClient.Token == "" {
-		if FlagDebug {
+		if flagDebug {
 			fmt.Println("Debug - GetOrgs(), no configured token in client, initializing")
 		}
 		initClient()
 	}
 
-	if FlagDebug {
+	if flagDebug {
 		fmt.Println("Debug - GetOrgs(): sending request")
 	}
 
@@ -66,7 +67,7 @@ func GetOrgs() (*[]nks.Organization, error) {
 	elapsed := time.Since(start)
 	check(err)
 
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("Debug - GetOrgs(): request completed in %v\n", elapsed)
 	}
 
@@ -74,7 +75,7 @@ func GetOrgs() (*[]nks.Organization, error) {
 }
 
 func getDefaultOrg() (nks.Organization, error) {
-	if FlagDebug {
+	if flagDebug {
 		fmt.Println("Debug - getDefaultOrg()")
 	}
 	o, err := GetOrgs()
@@ -100,8 +101,8 @@ var getOrganizationsCmd = &cobra.Command{
 	Short: "get organization details",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		if getOrgsId != "" {
-			i, err := strconv.Atoi(getOrgsId)
+		if getOrgsID != "" {
+			i, err := strconv.Atoi(getOrgsID)
 			check(err)
 			getOrganizationByID(i)
 		} else {
@@ -131,11 +132,11 @@ func getOrganizationByID(id int) {
 	printOrgs(&orgs)
 }
 
-var getOrgsId string
+var getOrgsID string
 
 func init() {
 	rootCmd.AddCommand(organizationCmd)
 	organizationCmd.AddCommand(getOrganizationsCmd)
 	organizationCmd.AddCommand(listOrganizationsCmd)
-	getOrganizationsCmd.Flags().StringVarP(&getOrgsId, "id", "", "", "ID of organization")
+	getOrganizationsCmd.Flags().StringVarP(&getOrgsID, "id", "", "", "ID of organization")
 }

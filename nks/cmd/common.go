@@ -11,24 +11,26 @@ import (
 
 	nks "github.com/NetApp/nks-sdk-go/nks"
 	"github.com/spf13/viper"
+	ext "gitlab.com/sgryczan/nks-cli/nks/extensions"
 )
 
-var flagClusterId int
-var flagSolutionId int
-var flagOrganizationId int
-var flagWorkspaceId int
+var flagclusterID int
+var flagsolutionID int
+var flagOrganizationID int
+var flagWorkspaceID int
 var flagSolutionName string
 var flagSolutionRepoName string
 var flagSolutionReleaseName string
 var flagForce bool
 var flagGenerateCompletionBash bool
 var flagGenerateCompletionZsh bool
-var FlagDebug bool
+var flagDebug bool
 var flagSetDefaults bool
 
-var ConfigFound bool
+var configFound bool
 
-var SDKClient *nks.APIClient
+// SDKClient represents an nks.APIClient
+var SDKClient *ext.SDK
 
 func newClient() *nks.APIClient {
 	client := nks.NewClient(viper.GetString("api_token"), viper.GetString("api_url"))
@@ -76,7 +78,7 @@ func check(e error) {
 	}
 }
 
-func readApiToken() string {
+func readAPIToken() string {
 	fmt.Printf("Enter your NKS API Token: ")
 	reader := bufio.NewReader(os.Stdin)
 	token, _ := reader.ReadString('\n')

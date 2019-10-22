@@ -1,13 +1,11 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-	vpr "github.com/spf13/viper"
 	models "gitlab.com/sgryczan/nks-cli/nks/models"
 )
 
@@ -24,25 +22,17 @@ func init() {
 	rootCmd.AddCommand(notificationsCmd)
 }
 
-func GetNotifications() []models.Notification {
-	if FlagDebug {
+// GetNotifications returns notifications for current user
+func GetNotifications() []*models.Notification {
+	if flagDebug {
 		fmt.Printf("Debug - GetNotifications()\n")
 	}
-	url := fmt.Sprintf("%s/user/notifications", vpr.GetString("api_url"))
-	if FlagDebug {
-		fmt.Printf("Debug - GetNotifications() - url: %s\n", url)
-	}
-	ns := models.Notifications{}
+	//ns := models.Notifications{}
 
-	res, err := httpRequest("GET", url)
-	if FlagDebug {
-		fmt.Printf("Debug - GetNotifications() - response: \n%s\n", res)
+	ns, err := SDKClient.GetNotifications()
+	if flagDebug {
+		fmt.Printf("Debug - GetNotifications() - response: \n%v\n", ns)
 	}
-	if err != nil {
-		fmt.Printf("%s\n", err)
-	}
-
-	err = json.Unmarshal(res, &ns)
 	if err != nil {
 		fmt.Printf("%s\n", err)
 	}
@@ -50,8 +40,9 @@ func GetNotifications() []models.Notification {
 	return ns
 }
 
-func PrintNotifications(ns []models.Notification, n int) {
-	if FlagDebug {
+// PrintNotifications prints a slice of Notifications to stdout
+func PrintNotifications(ns []*models.Notification, n int) {
+	if flagDebug {
 		fmt.Printf("Debug - printNotifications()\n")
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)

@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	nks "github.com/NetApp/nks-sdk-go/nks"
 	homedir "github.com/mitchellh/go-homedir"
 	vpr "github.com/spf13/viper"
+	ext "gitlab.com/sgryczan/nks-cli/nks/extensions"
 )
 
 var cfgFile string
@@ -50,20 +50,20 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&flagGenerateCompletionZsh, "generatecompletionzsh", "z", false, "Generate zsh completion scripts")
 	rootCmd.PersistentFlags().MarkHidden("generatecompletionzsh")
 
-	rootCmd.PersistentFlags().BoolVarP(&FlagDebug, "debug", "", false, "Debug logging")
+	rootCmd.PersistentFlags().BoolVarP(&flagDebug, "debug", "", false, "Debug logging")
 	rootCmd.PersistentFlags().MarkHidden("debug")
 }
 
 func initClient() {
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("Debug - initClient()\n")
 	}
-	SDKClient = nks.NewClient(vpr.GetString("api_token"), vpr.GetString("api_url"))
+	SDKClient = ext.NewClient(vpr.GetString("api_token"), vpr.GetString("api_url"))
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfigSource() {
-	if FlagDebug {
+	if flagDebug {
 		fmt.Println("Debug - initConfigSource()")
 	}
 
@@ -103,7 +103,7 @@ func initConfigSource() {
 	}
 	vpr.AutomaticEnv() // read in environment variables that match
 
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("DEBUG - vpr.settings from environment: %+v\n", vpr.AllSettings())
 		vpr.AllSettings()
 	}
@@ -111,13 +111,13 @@ func initConfigSource() {
 }
 
 func initCurrentConfig() {
-	if FlagDebug {
+	if flagDebug {
 		fmt.Println("Debug - initCurrentConfig()")
 	}
 
 	// If a config file is found, read it in.
 	if err := vpr.ReadInConfig(); err != nil {
-		if FlagDebug {
+		if flagDebug {
 			fmt.Println("initCurrentConfig() - Could not find config file!")
 		}
 		newConfigFile()

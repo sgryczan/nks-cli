@@ -18,7 +18,7 @@ import (
 	models "gitlab.com/sgryczan/nks-cli/nks/models"
 )
 
-var getClusterId int
+var getclusterID int
 var flagListAllClusters bool
 
 var flagClusterName string
@@ -26,7 +26,7 @@ var flagProviderName string
 var createClusterNumWorkers int
 var createClusterWorkerSize string
 var createClusterMasterSize string
-var deleteClusterIDf int
+var deleteclusterIDf int
 
 var gceDefaults = map[string]interface{}{
 	// Name is implied
@@ -114,21 +114,21 @@ var createClusterCmd = &cobra.Command{
 		if flagProviderName != "" {
 			provider = flagProviderName
 		}
-	
-		provider_ks_setting := fmt.Sprintf("%s_keyset", provider)
 
-		if FlagDebug {
-			fmt.Printf("Keyset var for provider %s should be: %s\n", provider, provider_ks_setting)
+		providerKsSetting := fmt.Sprintf("%s_keyset", provider)
+
+		if flagDebug {
+			fmt.Printf("Keyset var for provider %s should be: %s\n", provider, providerKsSetting)
 		}
 
 		// check user ssh keyset prese
-		for _, keyset := range []string{"user_ssh", provider_ks_setting,} {
+		for _, keyset := range []string{"user_ssh", providerKsSetting} {
 			if ks := vpr.GetInt(keyset); ks == 0 {
 
-				if FlagDebug {
+				if flagDebug {
 					fmt.Printf("Debug - No keyset for provider: %s in var: %d. Attempting to set a default\n", provider, ks)
 				}
-	
+
 				if keyset == "user_ssh" {
 					setDefaultProviderKey(keyset)
 				} else {
@@ -136,14 +136,13 @@ var createClusterCmd = &cobra.Command{
 				}
 			}
 		}
-		
 
 		template := generateClusterTemplate(provider)
 		template.Name = flagClusterName
 		template.Provider = provider
-		template.ProviderKey = vpr.GetInt(provider_ks_setting)
+		template.ProviderKey = vpr.GetInt(providerKsSetting)
 		template.SSHKeySet = vpr.GetInt("ssh_keyset")
-		if FlagDebug {
+		if flagDebug {
 			fmt.Printf("Template:\n%+v", template)
 		}
 
@@ -159,7 +158,7 @@ var createClusterCmd = &cobra.Command{
 			template.WorkerSize = createClusterWorkerSize
 		}
 
-		if FlagDebug {
+		if flagDebug {
 			fmt.Printf("Template:\n \t%+v", template)
 		}
 
@@ -183,7 +182,7 @@ var deleteClusterCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		checkDefaultOrg()
 
-		err := deleteClusterByID(deleteClusterIDf)
+		err := deleteClusterByID(deleteclusterIDf)
 		check(err)
 	},
 }
@@ -228,8 +227,8 @@ var getClustersCmd = &cobra.Command{
 		checkDefaultOrg()
 
 		i := vpr.GetInt("cluster_id")
-		if getClusterId != 0 {
-			i = getClusterId
+		if getclusterID != 0 {
+			i = getclusterID
 		}
 
 		cl, err := getClusterByID(i)
@@ -247,7 +246,7 @@ var getClustersCmd = &cobra.Command{
 }
 
 func printClusters(cs []nks.Cluster) {
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("Debug - printClusters()\n")
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 5, ' ', 0)
@@ -266,7 +265,7 @@ func printClusters(cs []nks.Cluster) {
 func getClusters() (*[]nks.Cluster, error) {
 	o := vpr.GetInt("org_id")
 
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("Debug - getClusters(%d)\n", o)
 	}
 
@@ -274,7 +273,7 @@ func getClusters() (*[]nks.Cluster, error) {
 	cls, err := SDKClient.GetClusters(o)
 	elapsed := time.Since(start)
 
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("Debug - getClusters() - completed in %v\n", elapsed)
 		fmt.Printf("Debug - getClusters() - response: %v\n", cls)
 	}
@@ -295,28 +294,28 @@ func getAllClusters() (*[]nks.Cluster, error) {
 	return &cls, err
 }
 
-func getClusterByID(clusterId int) (*nks.Cluster, error) {
+func getClusterByID(clusterID int) (*nks.Cluster, error) {
 	o, err := strconv.Atoi(vpr.GetString("org_id"))
 	check(err)
 
-	cl, err := SDKClient.GetCluster(o, clusterId)
+	cl, err := SDKClient.GetCluster(o, clusterID)
 
 	check(err)
 
 	return cl, err
 }
 
-func setClusterKubeConfig(clusterId int) {
-	if FlagDebug {
-		fmt.Printf("Debug - setClusterKubeConfig(%d)\n", clusterId)
+func setClusterKubeConfig(clusterID int) {
+	if flagDebug {
+		fmt.Printf("Debug - setClusterKubeConfig(%d)\n", clusterID)
 	}
 
-	kubeConfig, err := SDKClient.GetKubeConfig(vpr.GetInt("org_id"), clusterId)
+	kubeConfig, err := SDKClient.GetKubeConfig(vpr.GetInt("org_id"), clusterID)
 	if err != nil {
 		fmt.Printf("There was an error retrieving config for cluster %d: \n\t%v\n", vpr.GetInt("cluster_id"), err)
 	}
 	home, err := homedir.Dir()
-	//fmt.Printf("Setting kubeconfig to cluster %d", clusterId)
+	//fmt.Printf("Setting kubeconfig to cluster %d", clusterID)
 	b := []byte(kubeConfig)
 	if err != nil {
 		fmt.Printf("There was an error finding your home directory: %v", err)
@@ -328,20 +327,20 @@ func setClusterKubeConfig(clusterId int) {
 	}
 }
 
-func deleteClusterByID(clusterId int) error {
+func deleteClusterByID(clusterID int) error {
 	o := vpr.GetInt("org_id")
 
 	var err error
 
 	if flagForce {
-		err = SDKClient.ForceDeleteCluster(o, clusterId)
+		err = SDKClient.ForceDeleteCluster(o, clusterID)
 	} else {
-		err = SDKClient.DeleteCluster(o, clusterId)
+		err = SDKClient.DeleteCluster(o, clusterID)
 	}
 	check(err)
 
-	if clusterId == vpr.GetInt("cluster_id") {
-		setClusterID(0)
+	if clusterID == vpr.GetInt("cluster_id") {
+		setclusterID(0)
 	}
 
 	cl, err := getAllClusters()
@@ -354,12 +353,12 @@ func createCluster(cl models.CreateClusterInput) (nks.Cluster, error) {
 	url := fmt.Sprintf("https://api.nks.netapp.io/orgs/%d/clusters", vpr.GetInt("org_id"))
 	b, err := json.Marshal(cl)
 	check(err)
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("\nSending request with body:\n%s\n", b)
 	}
 
 	res, err := httpRequestPost("POST", url, b)
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("Got response: \n%s", string(res))
 	}
 	check(err)
@@ -396,9 +395,9 @@ func init() {
 	clusterCmd.AddCommand(deleteClusterCmd)
 	clusterCmd.AddCommand(listClustersCmd)
 
-	getClustersCmd.Flags().IntVarP(&getClusterId, "id", "", 0, "ID of cluster")
+	getClustersCmd.Flags().IntVarP(&getclusterID, "id", "", 0, "ID of cluster")
 
-	listClustersCmd.Flags().IntVarP(&getClusterId, "id", "", 0, "ID of cluster")
+	listClustersCmd.Flags().IntVarP(&getclusterID, "id", "", 0, "ID of cluster")
 	listClustersCmd.Flags().BoolVarP(&flagListAllClusters, "all", "a", false, "Get everything (incl. Service clusters)")
 
 	createClusterCmd.Flags().StringVarP(&flagClusterName, "name", "n", "", "ID of cluster")
@@ -410,7 +409,7 @@ func init() {
 	check(e)
 
 	deleteClusterCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "Force deletion")
-	deleteClusterCmd.Flags().IntVarP(&deleteClusterIDf, "id", "i", 0, "ID of cluster to delete")
+	deleteClusterCmd.Flags().IntVarP(&deleteclusterIDf, "id", "i", 0, "ID of cluster to delete")
 	e = deleteClusterCmd.MarkFlagRequired("id")
 	check(e)
 }

@@ -27,23 +27,23 @@ var listSolutionsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		checkDefaultOrg()
 
-		clusterId := vpr.GetInt("cluster_id")
-		orgId := vpr.GetInt("org_id")
-		if flagClusterId != 0 {
-			clusterId = flagClusterId
+		clusterID := vpr.GetInt("cluster_id")
+		orgID := vpr.GetInt("org_id")
+		if flagclusterID != 0 {
+			clusterID = flagclusterID
 		}
 
-		if clusterId == 0 {
+		if clusterID == 0 {
 			fmt.Printf("No default cluster set. Set one, or specify a cluster with --cluster-id.\n")
 			os.Exit(1)
 		}
 
-		ss, err := listSolutions(orgId, clusterId)
+		ss, err := listSolutions(orgID, clusterID)
 		if err != nil {
 			fmt.Printf("There was an error retrieving items:\n\t%s\n\n", err)
 			ss = &[]nks.Solution{}
 		}
-		fmt.Printf("(cluster id: %d)\n\n", clusterId)
+		fmt.Printf("(cluster id: %d)\n\n", clusterID)
 		printSolutions(*ss)
 	},
 }
@@ -70,8 +70,8 @@ var deploySolutionFromTemplateCmd = &cobra.Command{
 		fmt.Printf("creating solution %s...\n", name)
 		cid := vpr.GetInt("cluster_id")
 
-		if flagClusterId != 0 {
-			cid = flagClusterId
+		if flagclusterID != 0 {
+			cid = flagclusterID
 		}
 
 		s, err := createSolutionFromTemplate(name, vpr.GetInt("org_id"), cid)
@@ -93,23 +93,23 @@ var deploySolutionFromRepositoryCmd = &cobra.Command{
 
 		repoName := flagSolutionRepoName
 
-		if FlagDebug {
+		if flagDebug {
 			fmt.Printf("creating solution %s...\n", repoName)
 		}
 
 		cid := vpr.GetInt("cluster_id")
 
-		if flagClusterId != 0 {
-			cid = flagClusterId
+		if flagclusterID != 0 {
+			cid = flagclusterID
 		}
 
-		repo, err := GetRepositoryByName(repoName, FlagDebug)
+		repo, err := GetRepositoryByName(repoName, flagDebug)
 		if err != nil {
 			fmt.Printf("We had an error trying to retrieve Repository: %s\n", repoName)
 			os.Exit(1)
 		}
 
-		if FlagDebug {
+		if flagDebug {
 			fmt.Printf("Converting Repositiory:\n %+v\n", repo)
 		}
 		s, err := createSolutionFromRepository(repo, repoName, vpr.GetInt("org_id"), cid)
@@ -129,30 +129,30 @@ var deleteSolutionsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		checkDefaultOrg()
 
-		clusterId := vpr.GetInt("cluster_id")
-		orgId := vpr.GetInt("org_id")
-		if flagClusterId != 0 {
-			clusterId = flagClusterId
+		clusterID := vpr.GetInt("cluster_id")
+		orgID := vpr.GetInt("org_id")
+		if flagclusterID != 0 {
+			clusterID = flagclusterID
 		}
 
-		if clusterId == 0 {
+		if clusterID == 0 {
 			fmt.Printf("No default cluster set. Set one, or specify a cluster with --cluster-id.\n")
 			os.Exit(1)
 		}
 
-		fmt.Printf("deleting solution %d...\n", flagSolutionId)
+		fmt.Printf("deleting solution %d...\n", flagsolutionID)
 
-		err := deleteSolution(orgId, clusterId, flagSolutionId)
+		err := deleteSolution(orgID, clusterID, flagsolutionID)
 		check(err)
 
-		ss, err := listSolutions(orgId, clusterId)
+		ss, err := listSolutions(orgID, clusterID)
 		printSolutions(*ss)
 	},
 }
 
-func listSolutions(orgId, clusterId int) (*[]nks.Solution, error) {
+func listSolutions(orgID, clusterID int) (*[]nks.Solution, error) {
 
-	s, err := SDKClient.GetSolutions(orgId, clusterId)
+	s, err := SDKClient.GetSolutions(orgID, clusterID)
 	check(err)
 
 	return &s, err
@@ -167,17 +167,17 @@ func printSolutions(s []nks.Solution) {
 	w.Flush()
 }
 
-func createSolutionFromTemplate(s string, orgId, clusterId int) (*nks.Solution, error) {
+func createSolutionFromTemplate(s string, orgID, clusterID int) (*nks.Solution, error) {
 
 	template, err := models.GetTemplateAsJson(s)
 	check(err)
 
 	//fmt.Printf("Solution body: %s\n", template)
-	sol, err := SDKClient.AddSolutionFromJSON(orgId, clusterId, template)
+	sol, err := SDKClient.AddSolutionFromJSON(orgID, clusterID, template)
 	return sol, err
 }
 
-func createSolutionFromRepository(r models.Repository, releaseName string, orgId, clusterId int) (*nks.Solution, error) {
+func createSolutionFromRepository(r models.Repository, releaseName string, orgID, clusterID int) (*nks.Solution, error) {
 
 	template := models.RepositoryToTemplate(r, releaseName)
 	b, err := json.Marshal(template)
@@ -185,16 +185,16 @@ func createSolutionFromRepository(r models.Repository, releaseName string, orgId
 		fmt.Printf("error while attempting to convert template: \n\t:%v", err)
 	}
 
-	if FlagDebug {
+	if flagDebug {
 		fmt.Printf("Solution body: %s\n", string(b))
 	}
-	sol, err := SDKClient.AddSolutionFromJSON(orgId, clusterId, string(b))
+	sol, err := SDKClient.AddSolutionFromJSON(orgID, clusterID, string(b))
 	return sol, err
 }
 
-func deleteSolution(orgId, clusterId, solutionId int) error {
+func deleteSolution(orgID, clusterID, solutionID int) error {
 
-	err := SDKClient.DeleteSolution(orgId, clusterId, solutionId)
+	err := SDKClient.DeleteSolution(orgID, clusterID, solutionID)
 	return err
 }
 
@@ -207,13 +207,13 @@ func init() {
 	solutionsCmd.AddCommand(deleteSolutionsCmd)
 
 	deploySolutionFromRepositoryCmd.Flags().StringVarP(&flagSolutionRepoName, "name", "n", "demo", "Name of target repository")
-	deploySolutionFromTemplateCmd.Flags().IntVarP(&flagClusterId, "cluster-id", "c", vpr.GetInt("cluster_id"), "ID of target cluster")
+	deploySolutionFromTemplateCmd.Flags().IntVarP(&flagclusterID, "cluster-id", "c", vpr.GetInt("cluster_id"), "ID of target cluster")
 	deploySolutionFromTemplateCmd.Flags().StringVarP(&flagSolutionName, "name", "n", "jenkins", "Name of solution template")
 
-	listSolutionsCmd.Flags().IntVarP(&flagClusterId, "cluster-id", "c", vpr.GetInt("cluster_id"), "ID of target cluster")
+	listSolutionsCmd.Flags().IntVarP(&flagclusterID, "cluster-id", "c", vpr.GetInt("cluster_id"), "ID of target cluster")
 
-	deleteSolutionsCmd.Flags().IntVarP(&flagClusterId, "cluster-id", "c", vpr.GetInt("cluster_id"), "ID of target cluster")
-	deleteSolutionsCmd.Flags().IntVarP(&flagSolutionId, "solution-id", "s", 0, "ID of solution")
+	deleteSolutionsCmd.Flags().IntVarP(&flagclusterID, "cluster-id", "c", vpr.GetInt("cluster_id"), "ID of target cluster")
+	deleteSolutionsCmd.Flags().IntVarP(&flagsolutionID, "solution-id", "s", 0, "ID of solution")
 	e := deleteSolutionsCmd.MarkFlagRequired("solution-id")
 	check(e)
 }
