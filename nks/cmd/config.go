@@ -292,6 +292,8 @@ func setDefaultProviderKey(prov string) {
 	}
 
 	switch prov {
+	case "hci":
+		providerKey = fmt.Sprintf("%s_keyset", prov)
 	case "aws":
 		providerKey = fmt.Sprintf("%s_keyset", prov)
 	case "gce":
