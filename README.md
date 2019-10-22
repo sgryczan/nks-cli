@@ -9,6 +9,14 @@ The easiest way to install is by using `go get`:
 go get -u gitlab.com/sgryczan/nks-cli/nks
 ```
 
+The binary can also be installed from source using the provided `makefile`:
+
+```
+cd nks && make
+
+mv nks ~/go/bin/
+```
+
 ## Configuration
 
 nks-cli supports the following methods of configuration:
@@ -106,6 +114,20 @@ net56aqmmv-pool-1-wtzhn   Ready    <none>   18d   v1.14.3
 
 NAME          ID        PROVIDER     NODES     K8s_VERSION     STATE     
 mycluster     26529     hci          4         v1.14.3         draft
+```
+
+#### Example - Delete a cluster
+*note: the `--force` flag can  also be used to force a deletion (requires manual cleanup)*
+
+```
+➜ ✗ nks clusters delete --id 26529
+
+NAME                      ID        PROVIDER     NODES     K8s_VERSION     STATE                 
+mycluster                 26529     hci          4         v1.14.3         deleting              
+AWS-US-West-2a-1          26352     aws          3         v1.15.3         running               
+GCE-West1a-2              26350     gce          3         v1.15.3         running               
+Crimson Snowflake         25743     hci          7         v1.14.3         running               
+service-cluster-fluxt     25686     hci          4         v1.14.3         running (default)
 ```
 
 
