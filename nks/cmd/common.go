@@ -14,6 +14,8 @@ import (
 	ext "gitlab.com/sgryczan/nks-cli/nks/extensions"
 )
 
+var flagID int
+var flagName string
 var flagclusterID int
 var flagsolutionID int
 var flagOrganizationID int

@@ -127,6 +127,19 @@ var configSetWorkspaceCmd = &cobra.Command{
 	},
 }
 
+var configSetKeySetCmd = &cobra.Command{
+	Use:     "keyset",
+	Aliases: []string{"ws"},
+	Short:   "set default provider keyset",
+	Long:    "",
+	Run: func(cmd *cobra.Command, args []string) {
+		keysetID := flagID
+		providerName := flagName
+		setProviderKeyset(providerName, keysetID)
+		syncConfigFile()
+	},
+}
+
 func setClusterAsCurrent(clusterID int) {
 	if flagDebug {
 		fmt.Printf("Debug - setClusterAsCurrent(%d)\n", clusterID)
@@ -152,6 +165,11 @@ func setOrgID(orgID int) {
 
 func setWorkSpaceID(workspaceID int) {
 	vpr.Set("workspace_id", workspaceID)
+}
+
+func setProviderKeyset(provider string, keysetID int) {
+	providerKey := mapProviderKey(provider)
+	vpr.Set(providerKey, keysetID)
 }
 
 var configSetURLCmd = &cobra.Command{
@@ -284,13 +302,8 @@ func configureDefaultOrganization() {
 	}
 }
 
-func setDefaultProviderKey(prov string) {
+func mapProviderKey(prov string) string {
 	var providerKey string
-
-	if flagDebug {
-		fmt.Printf("Debug - setDefaultProviderKey(%v)\n", prov)
-	}
-
 	switch prov {
 	case "hci":
 		providerKey = fmt.Sprintf("%s_keyset", prov)
@@ -310,6 +323,18 @@ func setDefaultProviderKey(prov string) {
 		fmt.Printf("Error - '%s' is not a known provider\n", prov)
 		os.Exit(1)
 	}
+
+	return providerKey
+}
+
+func setDefaultProviderKey(prov string) {
+	var providerKey string
+
+	if flagDebug {
+		fmt.Printf("Debug - setDefaultProviderKey(%v)\n", prov)
+	}
+
+	providerKey = mapProviderKey(prov)
 
 	profile, err := SDKClient.GetUserProfile()
 	check(err)
@@ -385,6 +410,7 @@ func init() {
 	configSetCmd.AddCommand(configSetClusterCmd)
 	configSetCmd.AddCommand(configSetOrganizationCmd)
 	configSetCmd.AddCommand(configSetWorkspaceCmd)
+	configSetCmd.AddCommand(configSetKeySetCmd)
 
 	configSetClusterCmd.Flags().IntVarP(&flagclusterID, "id", "i", vpr.GetInt("cluster_id"), "ID of target cluster")
 	e := configSetClusterCmd.MarkFlagRequired("id")
@@ -396,6 +422,11 @@ func init() {
 
 	configSetWorkspaceCmd.Flags().IntVarP(&flagWorkspaceID, "id", "i", 0, "ID of workspace")
 	e = configSetWorkspaceCmd.MarkFlagRequired("id")
+	check(e)
+
+	configSetKeySetCmd.Flags().IntVarP(&flagID, "id", "i", 0, "KeySet ID")
+	configSetKeySetCmd.Flags().StringVarP(&flagName, "provider", "p", "hci", "Provider name")
+	e = configSetKeySetCmd.MarkFlagRequired("id")
 	check(e)
 
 	initConfigCmd.PersistentFlags().BoolVarP(&flagSetDefaults, "set-defaults", "", true, "Configure default values if possible")
