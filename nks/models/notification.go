@@ -29,12 +29,19 @@ type BuildLog struct {
 }
 
 type ExtraData struct {
-	Org struct {
-		ID   int    `json:"pk"`
-		Name string `json:"name"`
-	} `json:"org"`
+	Org     ExtraDataOrg `json:"org"`
 	Cluster struct {
 		ID   int    `json:"pk"`
 		Name string `json:"name"`
 	} `json:"cluster"`
+}
+
+type ExtraDataOrg struct {
+	ID   int    `json:"pk"`
+	Name string `json:"name"`
+}
+
+type ExtraDataCluster struct {
+	ID   int    `json:"pk"`
+	Name string `json:"name"`
 }
