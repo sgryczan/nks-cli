@@ -95,7 +95,7 @@ var hciDefaults = map[string]interface{}{
 
 var clusterCmd = &cobra.Command{
 	Use:     "clusters",
-	Aliases: []string{"cl", "clus", "clu", "clusters"},
+	Aliases: []string{"cl", "clus", "clu", "cluster", "clusters"},
 	Short:   "manage cluster resources",
 	Long:    ``,
 	//Run: func(cmd *cobra.Command, args []string) {
