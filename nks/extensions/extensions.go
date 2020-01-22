@@ -23,7 +23,7 @@ func NewClient(token, endpoint string) *SDK {
 	c := &SDK{nks.APIClient{
 		Token:      token,
 		Endpoint:   strings.TrimRight(endpoint, "/"),
-		HttpClient: http.DefaultClient,
+		HTTPClient: http.DefaultClient,
 	}}
 	return c
 }
@@ -54,7 +54,7 @@ func (c SDK) RunRequest(req *nks.APIReq) error {
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	// Run HTTP request, catching response
-	resp, err := c.HttpClient.Do(httpReq)
+	resp, err := c.HTTPClient.Do(httpReq)
 	if err != nil {
 		return err
 	}
