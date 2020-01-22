@@ -8,7 +8,7 @@ BINARY_UNIX=$(BINARY_NAME)_unix
 
 all: deps test build
 build: 
-	$(GOBUILD) -o $(BINARY_NAME) -v
+	GO111MODULE=off $(GOBUILD) -o $(BINARY_NAME) -v
 test: 
 	$(GOTEST) -v ./...
 clean: 
@@ -29,4 +29,4 @@ deps:
 build-linux:
 		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BINARY_UNIX) -v
 docker-build:
-		docker run --rm -it -v "$(GOPATH)":/go -w /go/src/gitlab.com/sgryczan/nks-cli/nks golang:latest go build -o "$(BINARY_UNIX)" -v
+		docker run --rm -it -v "$(GOPATH)":/go -e GO111MODULE=off -w /go/src/gitlab.com/sgryczan/nks-cli/nks golang:latest go build -o "$(BINARY_UNIX)" -v
